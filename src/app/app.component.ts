@@ -7,5 +7,10 @@ import { Component } from '@angular/core';
   standalone: false,
 })
 export class AppComponent {
-  constructor() {}
+  menuItems = [
+    { title: 'Home', url: '/home', icon: 'home' },
+    { title: 'Admin', url: '/admin', icon: 'shield-checkmark' },
+    { title: 'Stories', url: '/home', icon: 'book' },
+    { title: 'Add Story', url: '/stories/add', icon: 'add-circle', isChild: true },
+  ];
 }

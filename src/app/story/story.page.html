@@ -1,0 +1,77 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+    <ion-title>{{story?.title || 'Story'}}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+
+  <div class="story-hero" *ngIf="story">
+    <img [src]="storyService.toAbsUrl(story.cover) || 'assets/icon/favicon.png'" alt="cover" />
+    <div class="story-meta">
+      <h2>{{story.title}}</h2>
+      <p>{{story.description}}</p>
+    </div>
+  </div>
+
+  <ion-card class="player-card">
+    <div class="player-wrap">
+      <video id="story-video" controls playsinline preload="metadata" [attr.poster]="story?.cover"></video>
+
+      <div class="player-overlay" *ngIf="availableQualities.length">
+        <div class="quality-cluster">
+          <div class="quality-pill">{{ qualityDisplayLabel }}</div>
+          <ion-button class="quality-gear" fill="clear" size="small" (click)="openQuality($event)" aria-label="Quality">
+            <ion-icon name="settings-outline"></ion-icon>
+          </ion-button>
+        </div>
+      </div>
+
+      <ion-popover
+        class="quality-popover"
+        [isOpen]="qualityPopoverOpen"
+        [event]="qualityPopoverEvent"
+        side="bottom"
+        alignment="end"
+        [showBackdrop]="false"
+        (didDismiss)="qualityPopoverOpen = false">
+        <ng-template>
+          <ion-content class="quality-popover-content">
+            <div class="quality-title">Quality</div>
+            <ion-radio-group [value]="selectedQualityLevel" (ionChange)="changeQuality($event)">
+              <ion-item lines="none" class="quality-item" *ngFor="let q of availableQualities">
+                <ion-label>{{ q.label }}</ion-label>
+                <ion-radio slot="end" [value]="q.level"></ion-radio>
+              </ion-item>
+            </ion-radio-group>
+          </ion-content>
+        </ng-template>
+      </ion-popover>
+    </div>
+    <ion-card-content>
+      <div class="story-head">
+        <h3>{{story?.title}}</h3>
+      </div>
+      <p class="muted">{{story?.shortDescription || story?.description}}</p>
+    </ion-card-content>
+  </ion-card>
+
+  <ion-list lines="full" class="episode-list">
+    <ion-list-header>
+      Episodes
+    </ion-list-header>
+    <ion-item *ngFor="let ep of episodes" (click)="play(ep.videoUrl)">
+      <ion-thumbnail slot="start">
+        <img [src]="storyService.toAbsUrl(ep.thumbnail) || storyService.toAbsUrl(story?.cover) || 'assets/icon/favicon.png'">
+      </ion-thumbnail>
+      <ion-label>
+        <h3>Episode {{ep.episodeNumber}} - {{ep.title}}</h3>
+        <p class="muted">{{ep.duration || ''}}</p>
+      </ion-label>
+    </ion-item>
+  </ion-list>
+
+</ion-content>

@@ -1,0 +1,93 @@
+:host {
+  --brand: #005f73;
+  --brand-2: #0a9396;
+  --accent: #ee9b00;
+  --paper: #f8faf7;
+}
+
+.fancy-toolbar {
+  --background: linear-gradient(90deg, var(--brand), var(--brand-2));
+  --color: #ffffff;
+}
+
+.page-bg {
+  --background: radial-gradient(circle at top right, #d9f3f0 0%, #f4f6ef 45%, #eef2eb 100%);
+}
+
+.hero {
+  margin: 6px 4px 14px;
+  h1 {
+    font-size: 1.5rem;
+    margin: 0 0 4px;
+    font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
+    letter-spacing: 0.2px;
+    color: #073b4c;
+  }
+
+  p {
+    margin: 0;
+    color: #4f5d75;
+    font-size: 0.92rem;
+  }
+}
+
+.upload-card {
+  border-radius: 18px;
+  background: linear-gradient(170deg, #ffffff 0%, var(--paper) 100%);
+  box-shadow: 0 10px 30px rgba(4, 66, 63, 0.12);
+}
+
+.field-group {
+  display: grid;
+  gap: 10px;
+}
+
+.fancy-item {
+  --background: #ffffff;
+  border: 1px solid rgba(7, 59, 76, 0.12);
+  border-radius: 12px;
+  margin-bottom: 4px;
+}
+
+.picker-grid {
+  margin-top: 10px;
+  display: grid;
+  gap: 10px;
+}
+
+.file-picker {
+  border: 1px dashed rgba(0, 95, 115, 0.35);
+  border-radius: 12px;
+  padding: 10px;
+  background: #ffffff;
+}
+
+.picker-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+  color: #103344;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.picker-btn {
+  --border-color: rgba(0, 95, 115, 0.5);
+  --color: #0c4f62;
+}
+
+.hidden-input {
+  display: none;
+}
+
+.submit-btn {
+  margin-top: 16px;
+  --background: linear-gradient(90deg, #0a9396, #005f73);
+  --background-activated: linear-gradient(90deg, #0a9396, #005f73);
+  --background-focused: linear-gradient(90deg, #0a9396, #005f73);
+  --border-radius: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}

@@ -1,0 +1,204 @@
+.story-hero{
+  position: relative;
+}
+
+.story-hero img{
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+}
+
+.story-meta{
+  padding: 12px;
+}
+
+.player{
+  padding: 12px;
+}
+
+.player-card{
+  margin: 12px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.player-card ion-card-content{
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.player-wrap{
+  background: radial-gradient(1200px 500px at 50% 35%, rgba(255,255,255,0.14), rgba(0,0,0,0.0) 55%), #0b0b0c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+}
+
+.player-wrap video{
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.player-overlay{
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.player-overlay::after{
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.45), rgba(0,0,0,0.0) 45%);
+  opacity: 0.8;
+}
+
+.quality-cluster{
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  z-index: 3;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 6px;
+  border-radius: 999px;
+  background: rgba(15,15,16,0.50);
+  border: 1px solid rgba(255,255,255,0.16);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.22);
+}
+
+.quality-pill{
+  pointer-events: none;
+  color: rgba(255,255,255,0.92);
+  padding: 0 4px;
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.2px;
+}
+
+.quality-gear{
+  margin: 0;
+  height: 24px;
+  width: 24px;
+  --padding-start: 0px;
+  --padding-end: 0px;
+  --padding-top: 0px;
+  --padding-bottom: 0px;
+  --color: rgba(255,255,255,0.92);
+  --background: rgba(255,255,255,0.08);
+  --border-radius: 999px;
+}
+
+.quality-gear ion-icon{
+  font-size: 16px;
+}
+
+.quality-popover::part(content){
+  --width: 176px;
+  max-height: 240px;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.quality-popover-content{
+  --background: rgba(20,20,20,0.98);
+  color: #fff;
+  padding: 10px 10px 8px;
+}
+
+.quality-title{
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  font-size: 0.88rem;
+  margin-bottom: 6px;
+}
+
+.quality-item{
+  --background: transparent;
+  --color: rgba(255,255,255,0.92);
+  --padding-start: 8px;
+  --inner-padding-end: 8px;
+  --min-height: 34px;
+  border-radius: 10px;
+  font-size: 0.88rem;
+}
+
+.quality-item:hover{
+  --background: rgba(255,255,255,0.08);
+}
+
+/* Mature / polished styles */
+.player-card{
+  box-shadow: 0 14px 38px rgba(16,24,40,0.12);
+  border-radius: 16px;
+}
+
+.episode-list ion-item{
+  --padding-start: 8px;
+}
+
+.episode-list ion-thumbnail img{
+  width: 80px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.muted{
+  color: #666;
+  font-size: 0.95rem;
+}
+
+/* Mature / polished styles */
+.player-card{
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  border-radius: 14px;
+}
+
+.story-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.story-head h3{
+  margin:0;
+  font-size:1.1rem;
+}
+
+.age-badge{
+  background:#222;
+  color:#fff;
+  padding:6px 10px;
+  border-radius:18px;
+  font-weight:700;
+  font-size:0.8rem;
+}
+
+.episode-list ion-item{
+  transition: background 150ms ease, transform 120ms ease;
+}
+
+.episode-list ion-item:hover{
+  background: rgba(0,0,0,0.03);
+  transform: translateY(-2px);
+}
+
+.episode-list ion-item:active{
+  background: rgba(0,0,0,0.05);
+}
+
+/* thumbnail sizing */
+.episode-list ion-thumbnail{
+  width: 90px;
+  height: 60px;
+}

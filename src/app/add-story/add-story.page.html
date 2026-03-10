@@ -1,0 +1,66 @@
+<ion-header>
+  <ion-toolbar class="fancy-toolbar">
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Add Story</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="page-bg ion-padding">
+  <div class="hero">
+    <h1>Upload New Episode</h1>
+    <p>Attach video + thumbnail and publish to your story in one step.</p>
+  </div>
+
+  <ion-card class="upload-card">
+    <ion-card-content>
+      <div class="field-group">
+        <ion-item lines="none" class="fancy-item">
+          <ion-label position="stacked">Story ID</ion-label>
+          <ion-input type="number" [(ngModel)]="form.storyId" placeholder="e.g. 2"></ion-input>
+        </ion-item>
+
+        <ion-item lines="none" class="fancy-item">
+          <ion-label position="stacked">Episode Number</ion-label>
+          <ion-input type="number" [(ngModel)]="form.episodeNumber" placeholder="e.g. 2"></ion-input>
+        </ion-item>
+
+        <ion-item lines="none" class="fancy-item">
+          <ion-label position="stacked">Title</ion-label>
+          <ion-input [(ngModel)]="form.title" placeholder="Episode-2"></ion-input>
+        </ion-item>
+      </div>
+
+      <div class="picker-grid">
+        <div class="file-picker">
+          <div class="picker-top">
+            <span>Video File</span>
+            <ion-chip color="primary" *ngIf="videoFile">{{ videoFile.name }}</ion-chip>
+            <ion-chip color="medium" *ngIf="!videoFile">No video selected</ion-chip>
+          </div>
+          <input #videoInput class="hidden-input" type="file" accept="video/*" (change)="onVideoChange($event)">
+          <ion-button fill="outline" class="picker-btn" (click)="pickFile(videoInput)">
+            Choose Video
+          </ion-button>
+        </div>
+
+        <div class="file-picker">
+          <div class="picker-top">
+            <span>Thumbnail Image</span>
+            <ion-chip color="success" *ngIf="thumbnailFile">{{ thumbnailFile.name }}</ion-chip>
+            <ion-chip color="medium" *ngIf="!thumbnailFile">No thumbnail selected</ion-chip>
+          </div>
+          <input #thumbInput class="hidden-input" type="file" accept="image/*" (change)="onThumbnailChange($event)">
+          <ion-button fill="outline" class="picker-btn" (click)="pickFile(thumbInput)">
+            Choose Thumbnail
+          </ion-button>
+        </div>
+      </div>
+
+      <ion-button expand="block" class="submit-btn" (click)="submit()" [disabled]="isSubmitting">
+        {{ isSubmitting ? 'Uploading...' : 'Upload Episode' }}
+      </ion-button>
+    </ion-card-content>
+  </ion-card>
+</ion-content>

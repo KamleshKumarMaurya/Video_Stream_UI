@@ -1,0 +1,27 @@
+ion-content.login-content {
+  --background: linear-gradient(135deg, #6f3cf5 0%, #ff6b6b 100%);
+  color: #fff;
+}
+
+.hero {
+  padding: 48px 16px 12px;
+  text-align: center;
+}
+
+.hero-inner h1{
+  margin: 0 0 8px 0;
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.card-wrap{
+  padding: 16px;
+}
+
+ion-card{
+  border-radius: 12px;
+}
+
+.login-btn{
+  margin-top: 12px;
+}
