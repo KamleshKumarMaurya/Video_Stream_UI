@@ -1,0 +1,135 @@
+<ion-content class="sub-page" fullscreen>
+  <div class="sub-bg" aria-hidden="true"></div>
+
+  <div class="sub-wrap">
+    <div class="sub-topbar vs-sticky-topbar">
+      <div class="sub-brand">
+        <img class="sub-brand-avatar" src="assets/story.png" alt="" />
+        <div class="sub-brand-meta">
+          <div class="sub-brand-title">Subscription Plans</div>
+          <div class="sub-brand-name">VideoStory</div>
+        </div>
+      </div>
+
+      <button type="button" class="sub-icon-btn" aria-label="Notifications">
+        <ion-icon name="notifications-outline"></ion-icon>
+      </button>
+    </div>
+
+    <div class="sub-hero">
+      <div class="sub-hero-tag">LIMITED OFFER</div>
+      <div class="sub-hero-title" *ngIf="selectedPlan?.trialAvailable; else paidTitle">
+        {{ (selectedPlan?.trialDurationDays || trialDays) + '-Day Trial' }}
+      </div>
+      <ng-template #paidTitle>
+        <div class="sub-hero-title">Premium Plans</div>
+      </ng-template>
+      <div class="sub-hero-sub">
+        Choose a plan that fits you. Start with a trial if available, then upgrade anytime.
+      </div>
+    </div>
+
+    <div class="sub-benefits">
+      <div class="benefit">
+        <div class="benefit-icon">
+          <ion-icon name="ban-outline"></ion-icon>
+        </div>
+        <div class="benefit-text">
+          <div class="benefit-title">Ad-Free Experience</div>
+          <div class="benefit-sub">Focus on creativity without any interruptions.</div>
+        </div>
+      </div>
+
+      <div class="benefit">
+        <div class="benefit-icon">
+          <ion-icon name="download-outline"></ion-icon>
+        </div>
+        <div class="benefit-text">
+          <div class="benefit-title">Offline Downloads</div>
+          <div class="benefit-sub">Save your favorite inspirations for later.</div>
+        </div>
+      </div>
+
+      <div class="benefit">
+        <div class="benefit-icon">
+          <ion-icon name="sparkles-outline"></ion-icon>
+        </div>
+        <div class="benefit-text">
+          <div class="benefit-title">Exclusive Content</div>
+          <div class="benefit-sub">Access pro filters and premium assets.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sub-section-title">Choose your journey</div>
+    <div class="plans">
+      <ng-container *ngIf="!isLoadingPlans; else planLoading">
+        <button
+          type="button"
+          class="plan"
+          *ngFor="let p of plans"
+          [class.active]="selectedPlanId === p.id"
+          [class.best]="isBestPlan(p)"
+          (click)="selectPlan(p)"
+        >
+          <div class="best-badge" *ngIf="isBestPlan(p)">BEST VALUE</div>
+          <div class="selected-badge" *ngIf="selectedPlanId === p.id">
+            <ion-icon name="checkmark-circle"></ion-icon>
+            Selected
+          </div>
+
+          <div class="plan-left">
+            <div class="plan-months">{{ p?.name || (p?.durationDays + ' days') }}</div>
+            <div class="plan-sub">
+              {{ (p?.durationDays || 0) + ' days' }}
+              <span *ngIf="p?.trialAvailable"> - Trial available</span>
+            </div>
+          </div>
+
+          <div class="plan-right">
+            <div class="plan-price">₹{{ formatMoney(p?.price) }}</div>
+            <div class="plan-per">{{ perMonthLabel(p) }}</div>
+          </div>
+        </button>
+      </ng-container>
+
+      <ng-template #planLoading>
+        <div class="plan plan--skeleton" *ngFor="let _ of [1,2,3]">
+          <div class="plan-left">
+            <div class="sk sk-title"></div>
+            <div class="sk sk-sub"></div>
+          </div>
+          <div class="plan-right">
+            <div class="sk sk-price"></div>
+            <div class="sk sk-sub"></div>
+          </div>
+        </div>
+      </ng-template>
+    </div>
+
+    <button type="button" class="sub-cta" [disabled]="isPrimaryCtaDisabled" (click)="onPrimaryCta()">
+      {{ primaryCtaLabel }}
+      <ion-icon name="chevron-forward-outline"></ion-icon>
+    </button>
+
+    <div class="sub-legal">
+      By starting your trial, you agree to our Terms of Service.
+      <div class="sub-legal-sub">After 7 days, you will not be charged unless you subscribe.</div>
+    </div>
+  </div>
+
+  <div class="sub-bottom-nav sub-bottom-nav--3">
+    <button type="button" class="nav-item" (click)="setBottomTab('home')">
+      <ion-icon name="home-outline"></ion-icon>
+      <span>Home</span>
+    </button>
+    <button type="button" class="nav-item" (click)="setBottomTab('explore')">
+      <ion-icon name="compass-outline"></ion-icon>
+      <span>Explore</span>
+    </button>
+    <button type="button" class="nav-item active" (click)="setBottomTab('profile')">
+      <ion-icon name="person-outline"></ion-icon>
+      <span>Profile</span>
+    </button>
+  </div>
+</ion-content>

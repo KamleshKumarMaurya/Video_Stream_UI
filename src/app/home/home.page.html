@@ -1,41 +1,322 @@
-<ion-header>
-  <ion-toolbar>
-    <ion-buttons slot="start">
-      <ion-menu-button></ion-menu-button>
-    </ion-buttons>
-    <ion-title>Stories</ion-title>
-  </ion-toolbar>
-</ion-header>
+<ion-content class="home-page" fullscreen>
+  <div class="home-bg" aria-hidden="true"></div>
 
-<ion-content>
+  <div class="home-wrap">
+    <div class="topbar vs-sticky-topbar">
+      <button type="button" class="brand" (click)="setBottomTab('profile')" aria-label="Profile">
+        <img class="brand-avatar" src="assets/story.png" alt="" />
+        <span class="brand-name">VideoStory</span>
+      </button>
 
-  <div class="home-hero">
-    <h1>Discover stories</h1>
-    <p>Pick a story and start listening episode-wise</p>
+      <button type="button" class="icon-btn" (click)="onNotifications()" aria-label="Notifications">
+        <ion-icon name="notifications-outline"></ion-icon>
+      </button>
+    </div>
+
+    <ng-container [ngSwitch]="activeBottomTab">
+      <ng-container *ngSwitchCase="'home'">
+        <div class="greeting">
+          <!-- <div class="greeting-title">Hello, {{ displayName }}!</div> -->
+          <!-- <div class="greeting-sub">Ready for your daily visual feed?</div> -->
+        </div>
+
+        <div class="section-head">
+          <div class="section-title">Trending Stories</div>
+          <button type="button" class="see-more" (click)="setBottomTab('explore')">See More</button>
+        </div>
+
+        <div class="trending">
+          <button type="button" class="trend-main" (click)="openStory(trendingMain)" [disabled]="!trendingMain">
+            <img class="card-img" [src]="toThumb(trendingMain)" alt="" (error)="onImgError($event)" />
+            <div class="card-dim"></div>
+            <!-- <div class="time-badge">{{ getDurationForIndex(0) }}</div> -->
+            <div class="card-body">
+              <div class="pill">{{ trendingMain?.category || 'Lifestyle' }}</div>
+              <div class="card-title">{{ trendingMain?.title || 'Trending story' }}</div>
+              <div class="card-meta">
+                <!-- <span class="meta-item">
+                  <ion-icon name="time-outline" aria-hidden="true"></ion-icon>
+                  {{ getDurationForIndex(0) }}
+                </span> -->
+                <!-- <span class="meta-item">
+                  <ion-icon name="eye-outline" aria-hidden="true"></ion-icon>
+                  {{ trendingMain?.views || '—' }}
+                </span> -->
+              </div>
+            </div>
+          </button>
+
+          <div class="trend-side">
+            <button
+              type="button"
+              class="trend-mini"
+              *ngFor="let s of trendingSide; let i = index"
+              (click)="openStory(s)"
+            >
+              <img class="mini-img" [src]="toThumb(s)" alt="" (error)="onImgError($event)" />
+              <div class="mini-dim"></div>
+              <!-- <div class="time-badge mini-time">{{ getDurationForIndex(i + 1) }}</div> -->
+              <div class="mini-body">
+                <div class="mini-tag orange">{{ (s?.category || 'TRENDING') | uppercase }}</div>
+                <div class="mini-title">{{ s?.title || 'Story' }}</div>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <div class="section-head space">
+          <div class="section-title">Popular Picks</div>
+          <div class="arrows">
+            <button type="button" class="arrow-btn" aria-label="Previous">
+              <ion-icon name="chevron-back-outline"></ion-icon>
+            </button>
+            <button type="button" class="arrow-btn" aria-label="Next">
+              <ion-icon name="chevron-forward-outline"></ion-icon>
+            </button>
+          </div>
+        </div>
+
+        <div class="picks">
+          <button
+            type="button"
+            class="pick"
+            *ngFor="let s of popularCards; let i = index"
+            (click)="openStory(s)"
+          >
+            <div class="pick-media">
+              <img class="pick-img" [src]="toThumb(s)" alt="" (error)="onImgError($event)" />
+              <!-- <div class="time-badge pick-time">{{ getDurationForIndex(i + 2) }}</div> -->
+            </div>
+            <div class="pick-cat">{{ s?.category || (i === 0 ? 'Entertainment' : 'Nature') }}</div>
+            <div class="pick-title">{{ s?.title || 'Story' }}</div>
+          </button>
+        </div>
+
+        <!-- <div class="share-card" *ngIf="isAdmin">
+          <div class="share-left">
+            <div class="share-title">Share Your<br />Own<br />Story.</div>
+            <div class="share-sub">Join 2M+ creators filming<br />their daily lives in<br />cinematic motion.</div>
+            <button type="button" class="share-btn" (click)="setBottomTab('create')">Start<br />Creating</button>
+          </div>
+          <div class="share-art" aria-hidden="true">
+            <ion-icon name="ticket-outline"></ion-icon>
+          </div>
+        </div> -->
+      </ng-container>
+
+      <ng-container *ngSwitchCase="'explore'">
+        <div class="explore-head">
+          <div class="explore-title">Explore</div>
+          <div class="explore-sub">All stories</div>
+        </div>
+
+        <div class="explore-grid">
+          <button type="button" class="explore-card" *ngFor="let s of stories; let i = index" (click)="openStory(s)">
+            <div class="explore-media">
+              <img class="explore-img" [src]="toThumb(s)" alt="" (error)="onImgError($event)" />
+              <div class="time-badge pick-time">{{ getDurationForIndex(i) }}</div>
+            </div>
+            <div class="explore-meta">
+              <div class="explore-cat">{{ (s?.category || 'Story') }}</div>
+              <div class="explore-name">{{ s?.title || 'Untitled' }}</div>
+            </div>
+          </button>
+        </div>
+      </ng-container>
+    </ng-container>
+
+    <div class="sub-promo-spacer" *ngIf="activeBottomTab === 'home' && showSubscriptionCta && !isAdmin" aria-hidden="true"></div>
+    <div class="bottom-spacer" aria-hidden="true"></div>
   </div>
 
-  <ion-grid>
-    <ion-row>
-      <ion-col size="12" size-sm="6" size-md="4" *ngFor="let s of stories">
-        <ion-card (click)="openStory(s)" class="story-card">
-          <div class="thumb">
-            <img [src]="storyService.toAbsUrl(s.thumbnail) || 'assets/icon/favicon.png' " alt="cover" />
-            <div class="overlay">
-              <ion-icon name="play-circle" class="play-icon"></ion-icon>
+  <div class="sub-promo sub-promo--floating" *ngIf="activeBottomTab === 'home' && showSubscriptionCta && !isAdmin">
+    <div class="sub-promo-left">
+      <div class="sub-promo-kicker">SUBSCRIPTION</div>
+      <div class="sub-promo-title">Unlock premium</div>
+      <div class="sub-promo-sub">Choose a plan and start watching without limits.</div>
+    </div>
+    <button type="button" class="sub-promo-btn" (click)="openSubscription()">
+      {{ subscriptionCtaLabel }}
+      <ion-icon name="chevron-forward-outline" aria-hidden="true"></ion-icon>
+    </button>
+  </div>
+
+  <ng-container *ngIf="isAdmin; else customerNav">
+    <div class="bottom-nav">
+      <button type="button" class="nav-item" [class.active]="activeBottomTab === 'home'" (click)="setBottomTab('home')">
+        <ion-icon name="home-outline"></ion-icon>
+        <span>Home</span>
+      </button>
+
+      <button type="button" class="nav-item" [class.active]="activeBottomTab === 'explore'" (click)="setBottomTab('explore')">
+        <ion-icon name="compass-outline"></ion-icon>
+        <span>Explore</span>
+      </button>
+
+      <button type="button" class="nav-item nav-item--create" [class.active]="activeBottomTab === 'create'" (click)="setBottomTab('create')" aria-label="Create">
+        <div class="create-fab">
+          <ion-icon name="add-outline"></ion-icon>
+        </div>
+      </button>
+
+      <button type="button" class="nav-item" [class.active]="activeBottomTab === 'library'" (click)="setBottomTab('library')">
+        <ion-icon name="play-outline"></ion-icon>
+        <span>User</span>
+      </button>
+
+      <button type="button" class="nav-item" [class.active]="activeBottomTab === 'profile'" (click)="setBottomTab('profile')">
+        <ion-icon name="person-outline"></ion-icon>
+        <span>Profile</span>
+      </button>
+    </div>
+  </ng-container>
+
+  <ng-template #customerNav>
+    <div class="bottom-nav bottom-nav--3">
+      <button type="button" class="nav-item" [class.active]="activeBottomTab === 'home'" (click)="setBottomTab('home')">
+        <ion-icon name="home-outline"></ion-icon>
+        <span>Home</span>
+      </button>
+
+      <button type="button" class="nav-item" [class.active]="activeBottomTab === 'explore'" (click)="setBottomTab('explore')">
+        <ion-icon name="compass-outline"></ion-icon>
+        <span>Explore</span>
+      </button>
+
+      <button type="button" class="nav-item" [class.active]="activeBottomTab === 'profile'" (click)="setBottomTab('profile')">
+        <ion-icon name="person-outline"></ion-icon>
+        <span>Profile</span>
+      </button>
+    </div>
+  </ng-template>
+</ion-content>
+
+<!-- LEGACY HOME TEMPLATE (kept for reference during redesign)
+<ion-content class="home-page" fullscreen>
+  <div class="phone-shell">
+    <div class="screen-card">
+      <div class="screen-scroll">
+        <div class="page-pad">
+          <div class="top-row">
+            <div class="hello">
+              <div class="hello-text">Hi, {{displayName}}!</div>
+            </div>
+            <div class="top-actions">
+              <button class="icon-btn" type="button" (click)="onSearch()" aria-label="Search">
+                <ion-icon name="search-outline"></ion-icon>
+              </button>
+              <button class="avatar-btn" type="button" (click)="onNotifications()" aria-label="Profile">
+                <img class="avatar-img" src="assets/story.png" alt="" />
+              </button>
             </div>
           </div>
-          <ion-card-header>
-            <div class="card-head">
-              <ion-card-title>{{s.title}}</ion-card-title>
-            </div>
-            <ion-card-subtitle *ngIf="s.author">{{s.author}}</ion-card-subtitle>
-          </ion-card-header>
-          <ion-card-content>
-            <p class="muted">{{s.shortDescription || s.description || ''}}</p>
-          </ion-card-content>
-        </ion-card>
-      </ion-col>
-    </ion-row>
-  </ion-grid>
 
+          <div class="section-head first">
+            <div class="section-title">Explore Video Stories</div>
+          </div>
+
+          <div class="top-tabs">
+            <button
+              class="tab-chip"
+              type="button"
+              *ngFor="let t of topTabs"
+              [class.active]="t === activeTopTab"
+              (click)="setTopTab(t)"
+            >
+              {{t}}
+            </button>
+          </div>
+
+          <div class="section-head tight">
+            <div class="section-title">Trending Stories</div>
+          </div>
+
+          <div class="h-scroll">
+            <button
+              class="story-tile"
+              type="button"
+              *ngFor="let s of exploreStories; let i = index"
+              (click)="openStory(s)"
+            >
+              <img class="tile-img" loading="lazy" [src]="storyService.toAbsUrl(s.thumbnail) || 'assets/story.png'" 
+               alt="" (error)="onImgError($event)" />
+              <div class="tile-overlay">
+                <div class="tile-title">{{s.title}}</div>
+                <div class="tile-time">{{getDurationForIndex(i)}}</div>
+              </div>
+            </button>
+          </div>
+
+          <div class="section-head tight">
+            <div class="section-title">Categories For You</div>
+          </div>
+
+          <div class="chip-row">
+            <button
+              class="cat-chip"
+              type="button"
+              *ngFor="let c of categoryChips"
+              [class.active]="c === activeCategoryChip"
+              (click)="setCategoryChip(c)"
+            >
+              {{c}}
+            </button>
+          </div>
+
+          <div class="section-head tight">
+            <div class="section-title">Popular Picks</div>
+          </div>
+
+          <div class="picks-grid">
+            <button
+              class="pick-card"
+              type="button"
+              *ngFor="let s of popularPicks; let i = index"
+              [class.wide]="i === 2"
+              (click)="openStory(s)"
+            >
+              <img class="pick-img" [src]="storyService.toAbsUrl(s.thumbnail) || 'assets/story.png'" alt="" (error)="onImgError($event)" />
+              <div class="pick-overlay">
+                <div class="pick-title">{{s.title}}</div>
+                <div class="pick-time">{{getDurationForIndex(i + 2)}}</div>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <div class="premium-wrap">
+          <div class="premium-card">
+            <div class="premium-left">
+              <div class="crown">👑</div>
+              <div class="premium-text">
+                <div class="premium-title">Go Premium</div>
+                <div class="premium-sub">Unlock Exclusive Video Series</div>
+              </div>
+            </div>
+            <button class="premium-btn" type="button" (click)="upgradeNow()">Upgrade Now</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="bottom-nav">
+        <button class="nav-item" type="button" [class.active]="activeBottomTab==='home'" (click)="setBottomTab('home')">
+          <ion-icon name="home"></ion-icon>
+          <span>Home</span>
+        </button>
+        <button class="nav-item" type="button" [class.active]="activeBottomTab==='explore'" (click)="setBottomTab('explore')">
+          <ion-icon name="compass-outline"></ion-icon>
+          <span>Explore</span>
+        </button>
+        <button class="nav-item" type="button" [class.active]="activeBottomTab==='library'" (click)="setBottomTab('library')">
+          <ion-icon name="library-outline"></ion-icon>
+          <span>User</span>
+        </button>
+        <button class="nav-item" type="button" [class.active]="activeBottomTab==='videos'" (click)="setBottomTab('videos')">
+          <ion-icon name="videocam-outline"></ion-icon>
+          <span>Videos</span>
+        </button>
+      </div>
+    </div>
+  </div>
 </ion-content>
+-->

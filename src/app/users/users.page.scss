@@ -1,0 +1,169 @@
+:host {
+  --ion-background-color: transparent;
+}
+
+ion-content.users-page {
+  --background: radial-gradient(120% 80% at 10% 0%, rgba(168, 85, 247, 0.5) 0%, rgba(168, 85, 247, 0) 55%),
+    radial-gradient(90% 70% at 95% 25%, rgba(99, 102, 241, 0.28) 0%, rgba(99, 102, 241, 0) 60%),
+    linear-gradient(180deg, #160428 0%, #070018 100%);
+  --color: #ffffff;
+  color: #ffffff;
+}
+
+.users-bg {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(120% 80% at 30% 15%, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0) 60%);
+  pointer-events: none;
+}
+
+.users-wrap {
+  position: relative;
+  z-index: 1;
+  max-width: 460px;
+  margin: 0 auto;
+  padding: calc(14px + var(--ion-safe-area-top, 24px)) 18px 0;
+  padding-bottom: calc(110px + var(--ion-safe-area-bottom, 0px));
+}
+
+.users-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.users-title {
+  font-weight: 950;
+  font-size: 22px;
+  letter-spacing: -0.02em;
+}
+
+.users-refresh {
+  width: 44px;
+  height: 44px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.92);
+  display: grid;
+  place-items: center;
+}
+
+.users-refresh ion-icon {
+  font-size: 22px;
+}
+
+.users-sub {
+  color: rgba(227, 229, 255, 0.72);
+  font-size: 13px;
+  font-weight: 750;
+  margin-bottom: 14px;
+}
+
+.users-list {
+  display: grid;
+  gap: 12px;
+}
+
+.user-card {
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.36);
+  padding: 12px 12px 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.user-name {
+  font-weight: 950;
+  font-size: 14px;
+}
+
+.user-meta {
+  margin-top: 8px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  color: rgba(227, 229, 255, 0.74);
+  font-weight: 800;
+  font-size: 12px;
+}
+
+ion-toggle {
+  --track-background: rgba(255, 255, 255, 0.14);
+  --track-background-checked: rgba(167, 107, 255, 0.9);
+  --handle-background: rgba(255, 255, 255, 0.96);
+  --handle-background-checked: #ffffff;
+}
+
+.load-more {
+  margin-top: 16px;
+  --border-radius: 999px;
+  --background: rgba(255, 255, 255, 0.10);
+  --color: rgba(255, 255, 255, 0.92);
+  --border-color: rgba(255, 255, 255, 0.14);
+}
+
+.users-bottom-space {
+  height: 8px;
+}
+
+.users-bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(78px + var(--ion-safe-area-bottom, 0px));
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  align-items: center;
+  padding: 10px 12px calc(10px + var(--ion-safe-area-bottom, 0px));
+  background: rgba(12, 0, 28, 0.78);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(18px);
+  z-index: 10;
+}
+
+.nav-item {
+  border: 0;
+  background: transparent;
+  color: rgba(227, 229, 255, 0.72);
+  display: grid;
+  place-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.nav-item ion-icon {
+  font-size: 22px;
+}
+
+.nav-item.active {
+  color: rgba(167, 107, 255, 0.95);
+}
+
+.nav-item--create {
+  transform: translateY(-18px);
+}
+
+.create-fab {
+  width: 64px;
+  height: 64px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: rgba(167, 107, 255, 0.98);
+  box-shadow: 0 22px 60px rgba(167, 107, 255, 0.34);
+  border: 6px solid rgba(12, 0, 28, 0.78);
+}
+
+.create-fab ion-icon {
+  font-size: 28px;
+  color: #18022a;
+}
+

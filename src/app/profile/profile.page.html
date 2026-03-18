@@ -1,0 +1,85 @@
+<ion-content class="profile-page" fullscreen>
+  <div class="profile-bg" aria-hidden="true"></div>
+
+  <div class="profile-wrap">
+    <div class="profile-topbar vs-sticky-topbar">
+      <div class="profile-brand">
+        <img class="profile-brand-avatar" src="assets/story.png" alt="" />
+        <div class="profile-brand-name">VideoStory</div>
+      </div>
+
+      <div class="profile-top-actions">
+        <button type="button" class="profile-icon-btn" (click)="logout()" aria-label="Logout">
+          <ion-icon name="log-out-outline"></ion-icon>
+        </button>
+      </div>
+    </div>
+
+    <div class="simple-cards">
+      <div class="info-card">
+        <div class="info-label">MOBILE NUMBER</div>
+        <div class="info-value">{{ phone || '&#8212;' }}</div>
+        <div class="info-sub" *ngIf="customerCode">Customer: {{ customerCode }}</div>
+        <div class="info-sub" *ngIf="!customerCode">Role: {{ role | uppercase }}</div>
+      </div>
+
+      <div class="info-card">
+        <div class="info-label">SUBSCRIPTION</div>
+        <div class="sub-row">
+          <div class="sub-plan">{{ subscriptionPlan }}</div>
+          <div class="sub-badge" [class.inactive]="subscriptionStatus === 'Inactive'">{{ subscriptionStatus }}</div>
+        </div>
+        <div class="info-sub">{{ subscriptionNote }}</div>
+
+        <button type="button" class="subscribe-btn" *ngIf="!isAdmin && subscriptionStatus === 'Inactive'" (click)="openSubscription()">
+          Get Subscription
+        </button>
+      </div>
+    </div>
+
+    <div class="profile-bottom-space" aria-hidden="true"></div>
+  </div>
+
+  <ng-container *ngIf="isAdmin; else profileCustomerNav">
+    <div class="profile-bottom-nav">
+      <button type="button" class="nav-item" (click)="setBottomTab('home')">
+        <ion-icon name="home-outline"></ion-icon>
+        <span>Home</span>
+      </button>
+      <button type="button" class="nav-item" (click)="setBottomTab('explore')">
+        <ion-icon name="compass-outline"></ion-icon>
+        <span>Explore</span>
+      </button>
+      <button type="button" class="nav-item nav-item--create" (click)="setBottomTab('create')" aria-label="Create">
+        <div class="create-fab">
+          <ion-icon name="add-outline"></ion-icon>
+        </div>
+      </button>
+      <button type="button" class="nav-item" (click)="setBottomTab('library')">
+        <ion-icon name="play-outline"></ion-icon>
+        <span>User</span>
+      </button>
+      <button type="button" class="nav-item active">
+        <ion-icon name="person-outline"></ion-icon>
+        <span>Profile</span>
+      </button>
+    </div>
+  </ng-container>
+
+  <ng-template #profileCustomerNav>
+    <div class="profile-bottom-nav profile-bottom-nav--3">
+      <button type="button" class="nav-item" (click)="setBottomTab('home')">
+        <ion-icon name="home-outline"></ion-icon>
+        <span>Home</span>
+      </button>
+      <button type="button" class="nav-item" (click)="setBottomTab('explore')">
+        <ion-icon name="compass-outline"></ion-icon>
+        <span>Explore</span>
+      </button>
+      <button type="button" class="nav-item active">
+        <ion-icon name="person-outline"></ion-icon>
+        <span>Profile</span>
+      </button>
+    </div>
+  </ng-template>
+</ion-content>

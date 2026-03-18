@@ -1,4 +1,6 @@
 import { Component } from '@angular/core';
+import { Capacitor } from '@capacitor/core';
+import { StatusBar } from '@capacitor/status-bar';
 
 @Component({
   selector: 'app-root',
@@ -13,4 +15,17 @@ export class AppComponent {
     { title: 'Stories', url: '/home', icon: 'book' },
     { title: 'Add Story', url: '/stories/add', icon: 'add-circle', isChild: true },
   ];
+
+  constructor() {
+    void this.configureNativeStatusBar();
+  }
+
+  private async configureNativeStatusBar() {
+    if (!Capacitor.isNativePlatform()) return;
+    try {
+      await StatusBar.setOverlaysWebView({ overlay: false });
+    } catch {
+      // ignore
+    }
+  }
 }

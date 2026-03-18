@@ -1,0 +1,77 @@
+<ion-content fullscreen class="login-page">
+  <div class="login-container">
+    <div class="login-card">
+      <div class="logo">
+        <img src="assets/icon/video-stories-logo.svg" alt="Video Stories" />
+      </div>
+
+      <h1>Video Stories</h1>
+      <p class="subtitle">Watch. Learn. Get Inspired.</p>
+
+      <ion-button expand="block" class="google-btn" (click)="continueWithGoogle()">
+        <img src="assets/icon/google.svg" class="google-icon" alt="" />
+        <span>Continue with Google</span>
+      </ion-button>
+
+      <ion-button expand="block" class="email-btn" (click)="openEmailModal()">
+        Sign In with Email
+      </ion-button>
+
+      <div class="signup">
+        <span class="signup-text">New here?</span>
+        <button class="signup-link" type="button" (click)="openSignUpModal()">Sign Up</button>
+      </div>
+    </div>
+  </div>
+
+  <ion-modal [isOpen]="isEmailModalOpen" (didDismiss)="closeEmailModal()">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>Sign in with email</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="closeEmailModal()">Close</ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+
+      <ion-content class="email-modal-content">
+        <div class="email-card">
+          <form (ngSubmit)="submit()" [formGroup]="form">
+            <ion-item>
+              <ion-label position="floating">Email</ion-label>
+              <ion-input type="email" inputmode="email" formControlName="email"></ion-input>
+            </ion-item>
+
+            <ion-item>
+              <ion-label position="floating">Password</ion-label>
+              <ion-input type="password" formControlName="password"></ion-input>
+            </ion-item>
+
+            <ion-button expand="block" type="submit" class="email-submit-btn">Sign in</ion-button>
+          </form>
+        </div>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
+  <ion-modal [isOpen]="isSignUpModalOpen" (didDismiss)="closeSignUpModal()">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>Create account</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="closeSignUpModal()">Close</ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+
+      <ion-content class="signup-modal-content">
+        <div class="signup-card">
+          <p class="signup-copy">Sign up isn’t wired yet. Want me to add a full sign-up page/flow?</p>
+          <ion-button expand="block" (click)="closeSignUpModal()">OK</ion-button>
+        </div>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+</ion-content>

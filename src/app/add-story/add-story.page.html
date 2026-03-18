@@ -1,3 +1,257 @@
+<ion-content class="creator-page" fullscreen>
+  <div class="creator-bg" aria-hidden="true">
+    <div class="creator-shape s1"></div>
+    <div class="creator-shape s2"></div>
+    <div class="creator-shape s3"></div>
+  </div>
+
+  <div class="creator-wrap">
+    <div class="creator-topbar vs-sticky-topbar">
+      <div class="creator-brand">
+        <img class="creator-avatar" src="assets/story.png" alt="" />
+        <div class="creator-brand-name">VideoStory</div>
+      </div>
+
+      <button type="button" class="creator-icon-btn" aria-label="Notifications">
+        <ion-icon name="notifications-outline"></ion-icon>
+      </button>
+    </div>
+
+    <div class="creator-hero">
+      <div class="creator-kicker">CREATOR STUDIO</div>
+      <div class="creator-heading">Add New Content</div>
+    </div>
+
+    <div class="form-block">
+      <div class="field">
+        <div class="field-label">Story Title</div>
+        <ion-item lines="none" class="field-item">
+          <ion-input [(ngModel)]="storyForm.title" placeholder="e.g. The Forbidden Jungle"></ion-input>
+        </ion-item>
+      </div>
+
+      <div class="field">
+        <div class="field-label">Description</div>
+        <ion-item lines="none" class="field-item field-item--textarea">
+          <ion-textarea
+            autoGrow="true"
+            rows="4"
+            [(ngModel)]="storyForm.description"
+            placeholder="Write a short story description..."
+          ></ion-textarea>
+        </ion-item>
+      </div>
+
+      <div class="field">
+        <div class="field-label">Story Thumbnail</div>
+        <div class="thumb-drop" (click)="pickFile(storyThumbInput)">
+          <input #storyThumbInput class="hidden-input" type="file" accept="image/*" (change)="onStoryThumbnailChange($event)" />
+          <ion-icon name="image-outline" aria-hidden="true"></ion-icon>
+          <div class="thumb-text">{{ storyThumbnailFile?.name || 'Choose thumbnail' }}</div>
+        </div>
+      </div>
+
+      <ion-button expand="block" class="publish-btn" (click)="submitStory()" [disabled]="isCreatingStory">
+        {{ isCreatingStory ? 'Creating...' : 'Create Story' }}
+      </ion-button>
+    </div>
+
+    <div
+      class="drop-card"
+      (click)="pickFile(videoInput)"
+      (dragover)="preventDefault($event)"
+      (drop)="onVideoDrop($event)"
+    >
+      <input #videoInput class="hidden-input" type="file" accept="video/*" (change)="onVideoChange($event)" />
+      <div class="drop-icon">
+        <ion-icon name="cloud-upload-outline"></ion-icon>
+      </div>
+      <div class="drop-text">Drop your video here</div>
+      <div class="drop-sub">MP4 or MOV, max 500MB</div>
+      <div class="file-pill" *ngIf="videoFile">{{ videoFile.name }}</div>
+    </div>
+
+    <div class="form-block">
+      <div class="field">
+        <div class="field-label">Story ID</div>
+        <ion-item lines="none" class="field-item">
+          <ion-select
+            interface="popover"
+            [(ngModel)]="episodeForm.storyId"
+            placeholder="Select story"
+            [disabled]="isLoadingStories"
+          >
+            <ion-select-option *ngFor="let s of stories" [value]="s.id">
+              {{ (s.title || ('Story ' + s.id)) + '  #' + s.id }}
+            </ion-select-option>
+          </ion-select>
+        </ion-item>
+      </div>
+
+      <div class="field">
+        <div class="field-label">Episode Number</div>
+        <ion-item lines="none" class="field-item">
+          <ion-input type="number" inputmode="numeric" [(ngModel)]="episodeForm.episodeNumber" placeholder="e.g. 1"></ion-input>
+        </ion-item>
+      </div>
+
+      <div class="field">
+        <div class="field-label">Episode Title</div>
+        <ion-item lines="none" class="field-item">
+          <ion-input [(ngModel)]="episodeForm.title" placeholder="Enter episode title..."></ion-input>
+        </ion-item>
+      </div>
+
+      <div class="field">
+        <div class="field-label">Category</div>
+        <ion-item lines="none" class="field-item">
+          <ion-select interface="popover" [(ngModel)]="episodeForm.category">
+            <ion-select-option value="Lifestyle">Lifestyle</ion-select-option>
+            <ion-select-option value="Tech">Tech</ion-select-option>
+            <ion-select-option value="Creative">Creative</ion-select-option>
+            <ion-select-option value="Education">Education</ion-select-option>
+            <ion-select-option value="Entertainment">Entertainment</ion-select-option>
+            <ion-select-option value="Nature">Nature</ion-select-option>
+          </ion-select>
+        </ion-item>
+      </div>
+
+      <!-- <div class="field">
+        <div class="field-label">Tags</div>
+        <ion-item lines="none" class="field-item">
+          <ion-input [(ngModel)]="form.tags" placeholder="e.g. #vlog, #tech"></ion-input>
+        </ion-item>
+      </div>
+
+      <div class="field">
+        <div class="field-label">Description</div>
+        <ion-item lines="none" class="field-item field-item--textarea">
+          <ion-textarea
+            autoGrow="true"
+            rows="4"
+            [(ngModel)]="form.description"
+            placeholder="Tell the story behind the video..."
+          ></ion-textarea>
+        </ion-item>
+      </div> -->
+
+      <div class="field">
+        <div class="field-label">Thumbnail</div>
+        <div
+          class="thumb-drop"
+          (click)="pickFile(thumbInput)"
+          (dragover)="preventDefault($event)"
+          (drop)="onThumbDrop($event)"
+        >
+          <input #thumbInput class="hidden-input" type="file" accept="image/*" (change)="onThumbnailChange($event)" />
+          <ion-icon name="image-outline" aria-hidden="true"></ion-icon>
+          <div class="thumb-text">{{ episodeThumbnailFile?.name || 'Choose thumbnail' }}</div>
+        </div>
+      </div>
+
+      <ion-button expand="block" class="publish-btn" (click)="submitEpisode()" [disabled]="isUploadingEpisode">
+        {{ isSubmitting ? 'Publishing…' : 'Publish Story' }}
+      </ion-button>
+    </div>
+
+    <div class="manage-row">
+      <div class="manage-title">Manage<br />Content</div>
+      <div class="manage-seg">
+        <button type="button" class="seg-btn active">All Stories</button>
+        <button type="button" class="seg-btn">Drafts</button>
+      </div>
+    </div>
+
+    <div class="content-list">
+      <div class="content-card" *ngFor="let s of stories | slice:0:2">
+        <div class="content-left">
+          <img class="content-cover" [src]="toCover(s)" alt="" />
+        </div>
+        <div class="content-mid">
+          <div class="content-cat">{{ (s?.category || episodeForm.category || 'Lifestyle') | uppercase }}</div>
+          <div class="content-name">{{ s?.title || ('Story ' + s?.id) }}</div>
+          <div class="content-stats">
+            <span><ion-icon name="eye-outline" aria-hidden="true"></ion-icon> 12.4k</span>
+            <span><ion-icon name="heart-outline" aria-hidden="true"></ion-icon> 1.2k</span>
+          </div>
+        </div>
+        <button type="button" class="trash-btn" aria-label="Delete">
+          <ion-icon name="trash-outline"></ion-icon>
+        </button>
+      </div>
+    </div>
+
+    <div class="users-row">
+      <div class="users-title">Manage Users</div>
+      <button type="button" class="view-users" (click)="setBottomTab('library')">View All Users</button>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">ACTIVE USERS</div>
+        <div class="stat-value">2,842</div>
+        <div class="stat-sub">+12% from last week</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">NEW CREATORS</div>
+        <div class="stat-value">148</div>
+      </div>
+    </div>
+
+    <div class="creator-bottom-space" aria-hidden="true"></div>
+  </div>
+
+  <ng-container *ngIf="isAdmin; else addCustomerNav">
+    <div class="creator-bottom-nav">
+      <button type="button" class="nav-item" [class.active]="activeBottomTab === 'home'" (click)="setBottomTab('home')">
+        <ion-icon name="home-outline"></ion-icon>
+        <span>Home</span>
+      </button>
+
+      <button type="button" class="nav-item" [class.active]="activeBottomTab === 'explore'" (click)="setBottomTab('explore')">
+        <ion-icon name="compass-outline"></ion-icon>
+        <span>Explore</span>
+      </button>
+
+      <button type="button" class="nav-item nav-item--create" [class.active]="activeBottomTab === 'create'" (click)="setBottomTab('create')" aria-label="Create">
+        <div class="create-fab">
+          <ion-icon name="add-outline"></ion-icon>
+        </div>
+      </button>
+
+      <button type="button" class="nav-item" [class.active]="activeBottomTab === 'library'" (click)="setBottomTab('library')">
+        <ion-icon name="play-outline"></ion-icon>
+        <span>User</span>
+      </button>
+
+      <button type="button" class="nav-item" [class.active]="activeBottomTab === 'profile'" (click)="setBottomTab('profile')">
+        <ion-icon name="person-outline"></ion-icon>
+        <span>Profile</span>
+      </button>
+    </div>
+  </ng-container>
+
+  <ng-template #addCustomerNav>
+    <div class="creator-bottom-nav creator-bottom-nav--3">
+      <button type="button" class="nav-item" (click)="setBottomTab('home')">
+        <ion-icon name="home-outline"></ion-icon>
+        <span>Home</span>
+      </button>
+
+      <button type="button" class="nav-item" (click)="setBottomTab('explore')">
+        <ion-icon name="compass-outline"></ion-icon>
+        <span>Explore</span>
+      </button>
+
+      <button type="button" class="nav-item" (click)="setBottomTab('profile')">
+        <ion-icon name="person-outline"></ion-icon>
+        <span>Profile</span>
+      </button>
+    </div>
+  </ng-template>
+</ion-content>
+
+<!-- LEGACY ADD-STORY TEMPLATE (kept for reference during redesign)
 <ion-header>
   <ion-toolbar class="fancy-toolbar">
     <ion-buttons slot="start">
@@ -64,3 +318,4 @@
     </ion-card-content>
   </ion-card>
 </ion-content>
+-->
