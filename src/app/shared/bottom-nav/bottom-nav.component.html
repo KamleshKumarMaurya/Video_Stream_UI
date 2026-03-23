@@ -1,0 +1,22 @@
+<nav class="app-bottom-nav" [style.gridTemplateColumns]="gridTemplateColumns" aria-label="Primary navigation">
+  <button
+    type="button"
+    class="app-bottom-nav__item"
+    *ngFor="let item of items; trackBy: trackById"
+    [class.app-bottom-nav__item--center]="item.center"
+    [class.active]="activeId === item.id"
+    (click)="select(item)"
+    [attr.aria-label]="item.ariaLabel || item.label || item.id"
+  >
+    <ng-container *ngIf="item.center; else regularNavItem">
+      <div class="app-bottom-nav__fab" [class.active]="activeId === item.id">
+        <ion-icon [name]="item.icon"></ion-icon>
+      </div>
+    </ng-container>
+
+    <ng-template #regularNavItem>
+      <ion-icon [name]="item.icon"></ion-icon>
+      <span>{{ item.label }}</span>
+    </ng-template>
+  </button>
+</nav>

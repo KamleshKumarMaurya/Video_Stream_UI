@@ -208,7 +208,7 @@ ion-content.audio-page {
 }
 
 .audio-meta {
-  width: min(100%, 320px);
+  width: min(100%, 350px);
 }
 
 .audio-kicker {
@@ -449,15 +449,29 @@ ion-content.audio-page {
 .episode-card {
   width: 100%;
   border: 0;
-  background: transparent;
-  border-radius: 0;
-  padding: 10px 0;
+  background: radial-gradient(120% 120% at 20% 0%, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0.04) 55%, rgba(255, 255, 255, 0.02) 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(0, 0, 0, 0.10) 100%);
+  border-radius: 22px;
+  padding: 12px 12px;
   color: #fff;
   display: grid;
-  grid-template-columns: 20px minmax(0, 1fr) auto;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
   gap: 12px;
-  align-items: center;
+  align-items: start;
   text-align: left;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.40);
+  position: relative;
+  overflow: hidden;
+  min-height: 45px;
+}
+
+.episode-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(90% 80% at 10% 15%, rgba(167, 107, 255, 0.10) 0%, rgba(167, 107, 255, 0) 55%);
+  pointer-events: none;
 }
 
 .episode-card.active {
@@ -465,21 +479,76 @@ ion-content.audio-page {
 }
 
 .episode-card.locked {
-  opacity: 0.72;
+  background: radial-gradient(100% 80% at 30% 15%, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 55%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(0, 0, 0, 0.16) 100%);
 }
 
 .episode-index {
-  width: 20px;
+  width: 22px;
   text-align: center;
   font-size: 12px;
   font-weight: 900;
   color: rgba(255, 255, 255, 0.58);
+  padding-top: 2px;
+}
+
+.episode-copy {
+  min-width: 0;
+  padding: 2px 4px 2px 0;
+}
+
+.episode-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.episode-status {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: 999px;
+  font-weight: 950;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.episode-status--free {
+  background: rgba(34, 197, 94, 0.18);
+  border: 1px solid rgba(34, 197, 94, 0.34);
+  color: rgba(220, 252, 231, 0.95);
+}
+
+.episode-status--locked {
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.episode-status--locked ion-icon {
+  font-size: 12px;
+}
+
+.episode-sub {
+  margin-top: 6px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: rgba(235, 231, 255, 0.62);
 }
 
 .episode-title {
   font-size: 13px;
   font-weight: 900;
   line-height: 1.2;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .episode-card.active .episode-title {
@@ -490,6 +559,13 @@ ion-content.audio-page {
   font-size: 12px;
   color: rgba(235, 231, 255, 0.45);
   font-weight: 700;
+  padding-top: 2px;
+}
+
+.episode-card.locked .episode-index,
+.episode-card.locked .episode-duration,
+.episode-card.locked .episode-sub {
+  color: rgba(235, 231, 255, 0.48);
 }
 
 .episode-lock {
@@ -538,12 +614,46 @@ ion-content.audio-page {
   width: min(100%, 420px);
   border-radius: 24px;
   padding: 18px;
-  background: rgba(10, 10, 12, 0.96);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 26px 72px rgba(0, 0, 0, 0.48);
+  background: radial-gradient(100% 100% at 25% 0%, rgba(167, 107, 255, 0.22) 0%, rgba(167, 107, 255, 0) 55%),
+    linear-gradient(180deg, rgba(25, 8, 51, 0.95) 0%, rgba(10, 0, 24, 0.98) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.65);
+}
+
+.lock-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.lock-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.lock-icon ion-icon {
+  font-size: 20px;
+}
+
+.lock-close {
+  width: 42px;
+  height: 42px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.92);
+  display: grid;
+  place-items: center;
 }
 
 .lock-title {
+  margin-top: 10px;
   font-size: 18px;
   font-weight: 950;
 }

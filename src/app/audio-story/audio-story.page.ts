@@ -107,6 +107,12 @@ export class AudioStoryPage implements OnInit, OnDestroy {
     return this.descriptionExpanded ? 'Show less' : 'Show more';
   }
 
+  get lockedEpisodeLabel(): string {
+    const episode = this.lockedEpisode || this.nextEpisodes?.[this.lockedEpisodeIndex];
+    const epNum = episode?.episodeNumber ?? episode?.episode ?? episode?.ep ?? (this.lockedEpisodeIndex >= 0 ? this.lockedEpisodeIndex + 1 : 1);
+    return String(epNum).padStart(2, '0');
+  }
+
   get isWishlisted(): boolean {
     return !!this.story?.id && this.wishlistService.hasStory(this.story.id);
   }

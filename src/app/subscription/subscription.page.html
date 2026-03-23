@@ -125,18 +125,5 @@
     </ng-template>
   </div>
 
-  <div class="sub-bottom-nav sub-bottom-nav--3">
-    <button type="button" class="nav-item" (click)="setBottomTab('home')">
-      <ion-icon name="home-outline"></ion-icon>
-      <span>Home</span>
-    </button>
-    <button type="button" class="nav-item" (click)="setBottomTab('explore')">
-      <ion-icon name="compass-outline"></ion-icon>
-      <span>Explore</span>
-    </button>
-    <button type="button" class="nav-item active" (click)="setBottomTab('profile')">
-      <ion-icon name="person-outline"></ion-icon>
-      <span>Profile</span>
-    </button>
-  </div>
+  <app-bottom-nav [items]="bottomNavItems" [activeId]="activeBottomTab" (selected)="setBottomTab($event)"></app-bottom-nav>
 </ion-content>

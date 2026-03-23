@@ -43,6 +43,12 @@
   --vs-safe-area-bottom: var(--ion-safe-area-bottom, env(safe-area-inset-bottom, 0px));
 }
 
+html,
+body,
+ion-app {
+  background: #070018;
+}
+
 /* Shared utilities */
 .vs-sticky-topbar {
   position: sticky;

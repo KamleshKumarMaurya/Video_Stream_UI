@@ -1,13 +1,25 @@
 :host {
-  --ion-background-color: transparent;
+  --ion-background-color: #070018;
 }
 
 ion-content.home-page {
-  --background: radial-gradient(120% 80% at 10% 0%, rgba(168, 85, 247, 0.5) 0%, rgba(168, 85, 247, 0) 55%),
+  --home-background: radial-gradient(120% 80% at 10% 0%, rgba(168, 85, 247, 0.5) 0%, rgba(168, 85, 247, 0) 55%),
     radial-gradient(90% 70% at 95% 25%, rgba(99, 102, 241, 0.28) 0%, rgba(99, 102, 241, 0) 60%),
     linear-gradient(180deg, #160428 0%, #070018 100%);
+  --background: var(--home-background);
   --color: #ffffff;
+  background: var(--home-background);
   color: #ffffff;
+}
+
+ion-content.home-page::part(background),
+ion-content.home-page::part(scroll) {
+  background: var(--home-background);
+}
+
+ion-refresher,
+ion-refresher-content {
+  background: transparent;
 }
 
 .phone-shell {

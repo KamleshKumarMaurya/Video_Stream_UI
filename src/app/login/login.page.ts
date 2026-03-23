@@ -60,6 +60,11 @@ export class LoginPage implements OnDestroy {
   private resendUnlockTimer: ReturnType<typeof setTimeout> | null = null;
   private resendCountdownTimer: ReturnType<typeof setInterval> | null = null;
 
+  get canVerifyOtp(): boolean {
+    const otp = String(this.otpForm.value.otp ?? '').trim();
+    return this.otpForm.valid && otp.length === 6;
+  }
+
   goBack() {
     if (this.step === 'otp') {
       this.step = 'phone';
@@ -131,7 +136,7 @@ export class LoginPage implements OnDestroy {
         if (!ok) return;
 
         await this.presentToast('Verified! Redirecting...', 'success');
-        this.router.navigateByUrl('/home', { replaceUrl: true });
+        this.router.navigateByUrl('/home?tab=home', { replaceUrl: true });
         return;
       } catch (err: any) {
         await this.presentToast(this.extractErrorMessage(err) || 'Invalid OTP. Please try again.', 'danger');
@@ -173,7 +178,7 @@ export class LoginPage implements OnDestroy {
         const ok = await this.persistAuthPayload(res, 'admin', { email });
         if (!ok) return;
         await this.presentToast('Welcome, Admin.', 'success');
-        this.router.navigateByUrl('/home', { replaceUrl: true });
+        this.router.navigateByUrl('/home?tab=home', { replaceUrl: true });
       } catch (err: any) {
         await this.presentToast(this.extractErrorMessage(err) || 'Admin login failed.', 'danger');
       } finally {

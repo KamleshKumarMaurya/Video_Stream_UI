@@ -46,6 +46,16 @@ export class UsersPage implements OnInit {
     return this.role === 'admin';
   }
 
+  get bottomNavItems(): any[] {
+    return [
+      { id: 'home', label: 'Home', icon: 'home-outline' },
+      { id: 'explore', label: 'Explore', icon: 'compass-outline' },
+      { id: 'create', icon: 'add-outline', center: true, ariaLabel: 'Create' },
+      { id: 'library', label: 'User', icon: 'play-outline' },
+      { id: 'profile', label: 'Profile', icon: 'person-outline' },
+    ];
+  }
+
   ngOnInit(): void {
     try {
       const role = localStorage.getItem('vs_role');

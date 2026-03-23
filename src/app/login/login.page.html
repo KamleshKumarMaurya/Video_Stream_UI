@@ -101,7 +101,12 @@
                 ></ion-input>
               </ion-item>
 
-              <ion-button expand="block" class="primary-btn" type="submit" [disabled]="isVerifyingOtp">
+              <ion-button
+                expand="block"
+                class="primary-btn"
+                type="submit"
+                [disabled]="isVerifyingOtp || !canVerifyOtp"
+              >
                 {{ isVerifyingOtp ? 'Verifying…' : 'Verify & Continue' }}
               </ion-button>
 

@@ -5,12 +5,14 @@ import { IonicModule } from '@ionic/angular';
 
 import { StoryPageRoutingModule } from './story-routing.module';
 import { StoryPage } from './story.page';
+import { BottomNavComponent } from '../shared/bottom-nav/bottom-nav.component';
 
 @NgModule({
   imports: [
     CommonModule,
     FormsModule,
     IonicModule,
+    BottomNavComponent,
     StoryPageRoutingModule
   ],
   declarations: [StoryPage]

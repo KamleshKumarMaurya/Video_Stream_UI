@@ -45,6 +45,14 @@ export class SubscriptionPage implements OnInit {
     return this.role === 'admin';
   }
 
+  get bottomNavItems(): any[] {
+    return [
+      { id: 'home', label: 'Home', icon: 'home-outline' },
+      { id: 'explore', label: 'Explore', icon: 'compass-outline' },
+      { id: 'profile', label: 'Profile', icon: 'person-outline' },
+    ];
+  }
+
   get selectedPlan(): Plan | null {
     if (!this.selectedPlanId) return null;
     return this.plans.find(p => p.id === this.selectedPlanId) || null;

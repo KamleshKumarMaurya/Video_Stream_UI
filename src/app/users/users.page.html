@@ -90,31 +90,5 @@
     <div class="users-bottom-space" aria-hidden="true"></div>
   </div>
 
-  <div class="users-bottom-nav">
-    <button type="button" class="nav-item" [class.active]="activeBottomTab === 'home'" (click)="setBottomTab('home')">
-      <ion-icon name="home-outline"></ion-icon>
-      <span>Home</span>
-    </button>
-
-    <button type="button" class="nav-item" [class.active]="activeBottomTab === 'explore'" (click)="setBottomTab('explore')">
-      <ion-icon name="compass-outline"></ion-icon>
-      <span>Explore</span>
-    </button>
-
-    <button type="button" class="nav-item nav-item--create" [class.active]="activeBottomTab === 'create'" (click)="setBottomTab('create')" aria-label="Create">
-      <div class="create-fab">
-        <ion-icon name="add-outline"></ion-icon>
-      </div>
-    </button>
-
-    <button type="button" class="nav-item active" aria-label="Users">
-      <ion-icon name="people-outline"></ion-icon>
-      <span>User</span>
-    </button>
-
-    <button type="button" class="nav-item" [class.active]="activeBottomTab === 'profile'" (click)="setBottomTab('profile')">
-      <ion-icon name="person-outline"></ion-icon>
-      <span>Profile</span>
-    </button>
-  </div>
+  <app-bottom-nav [items]="bottomNavItems" [activeId]="activeBottomTab" (selected)="setBottomTab($event)"></app-bottom-nav>
 </ion-content>

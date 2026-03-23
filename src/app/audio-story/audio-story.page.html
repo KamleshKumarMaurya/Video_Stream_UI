@@ -122,12 +122,17 @@
         >
           <div class="episode-index">{{ formatEpisodeIndex(i + 1) }}</div>
           <div class="episode-copy">
-            <div class="episode-title">{{ ep?.title || ('Episode ' + (ep?.episodeNumber || (i + 1))) }}</div>
+            <div class="episode-top">
+              <div class="episode-title">{{ ep?.title || ('Episode ' + (ep?.episodeNumber || (i + 1))) }}</div>
+              <div class="episode-status episode-status--free" *ngIf="!isAdmin && subscriptionChecked && !isSubscribed && i < freeEpisodeCount">FREE</div>
+              <div class="episode-status episode-status--locked" *ngIf="!isAdmin && subscriptionChecked && !isSubscribed && i >= freeEpisodeCount">
+                <ion-icon name="lock-closed-outline"></ion-icon>
+                Locked
+              </div>
+            </div>
+            <!-- <div class="episode-sub">{{ getEpisodeDuration(ep, i) || ep?.summary || '...' }}</div> -->
           </div>
           <div class="episode-duration">{{ getEpisodeDuration(ep, i) }}</div>
-          <div class="episode-lock" *ngIf="isEpisodeLockedByIndex(i)">
-            <ion-icon name="lock-closed-outline"></ion-icon>
-          </div>
         </button>
       </div>
 
@@ -142,7 +147,16 @@
 
   <div class="lock-overlay" *ngIf="lockOpen" (click)="closeLock()">
     <div class="lock-card" (click)="$event.stopPropagation()">
-      <div class="lock-title">Unlock Episode {{ lockedEpisodeIndex + 1 }}</div>
+      <div class="lock-top">
+        <div class="lock-icon">
+          <ion-icon name="lock-closed"></ion-icon>
+        </div>
+        <button type="button" class="lock-close" (click)="closeLock()" aria-label="Close">
+          <ion-icon name="close"></ion-icon>
+        </button>
+      </div>
+
+      <div class="lock-title">Unlock Episode {{ lockedEpisodeLabel }}</div>
       <div class="lock-sub">Subscribe to continue listening. First {{ freeEpisodeCount }} episodes are free.</div>
       <button type="button" class="lock-btn lock-btn--primary" (click)="goToSubscription()">Subscribe Now</button>
       <button type="button" class="lock-btn" (click)="closeLock()">Not now</button>

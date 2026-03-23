@@ -69,6 +69,24 @@ export class HomePage implements OnInit {
     return this.role === 'admin';
   }
 
+  get bottomNavItems(): any[] {
+    if (this.isAdmin) {
+      return [
+        { id: 'home', label: 'Home', icon: 'home-outline' },
+        { id: 'explore', label: 'Explore', icon: 'compass-outline' },
+        { id: 'create', icon: 'add-outline', center: true, ariaLabel: 'Create' },
+        { id: 'library', label: 'User', icon: 'play-outline' },
+        { id: 'profile', label: 'Profile', icon: 'person-outline' },
+      ];
+    }
+
+    return [
+      { id: 'home', label: 'Home', icon: 'home-outline' },
+      { id: 'explore', label: 'Explore', icon: 'compass-outline' },
+      { id: 'profile', label: 'Profile', icon: 'person-outline' },
+    ];
+  }
+
   ngOnInit() {
     try {
       const role = localStorage.getItem('vs_role');
@@ -480,8 +498,25 @@ export class HomePage implements OnInit {
 
     window.setTimeout(() => {
       this.latestDeck = [...this.latestDeck.slice(1), this.latestDeck[0]];
-      this.resetLatestDrag();
-    }, 220);
+      this.latestIsThrowing = false;
+      this.latestIsDragging = false;
+      this.latestPointerId = null;
+
+      const settleX = direction === 1 ? -24 : 24;
+      const settleY = 10;
+      const settleRotate = direction === 1 ? -3 : 3;
+
+      this.stopLatestAnimation();
+      this.latestRenderX = settleX;
+      this.latestRenderY = settleY;
+      this.latestRenderRotate = settleRotate;
+      this.latestRenderScale = 0.97;
+      this.latestTargetX = 0;
+      this.latestTargetY = 0;
+      this.latestTargetRotate = 0;
+      this.latestTargetScale = 1;
+      this.startLatestAnimation();
+    }, 280);
   }
 
   private resetLatestDrag(snapToRest = true): void {

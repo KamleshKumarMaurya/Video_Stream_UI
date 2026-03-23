@@ -107,46 +107,5 @@
     <div class="profile-bottom-space" aria-hidden="true"></div>
   </div>
 
-  <ng-container *ngIf="isAdmin; else profileCustomerNav">
-    <div class="profile-bottom-nav">
-      <button type="button" class="nav-item" (click)="setBottomTab('home')">
-        <ion-icon name="home-outline"></ion-icon>
-        <span>Home</span>
-      </button>
-      <button type="button" class="nav-item" (click)="setBottomTab('explore')">
-        <ion-icon name="compass-outline"></ion-icon>
-        <span>Explore</span>
-      </button>
-      <button type="button" class="nav-item nav-item--create" (click)="setBottomTab('create')" aria-label="Create">
-        <div class="create-fab">
-          <ion-icon name="add-outline"></ion-icon>
-        </div>
-      </button>
-      <button type="button" class="nav-item" (click)="setBottomTab('library')">
-        <ion-icon name="play-outline"></ion-icon>
-        <span>User</span>
-      </button>
-      <button type="button" class="nav-item active">
-        <ion-icon name="person-outline"></ion-icon>
-        <span>Profile</span>
-      </button>
-    </div>
-  </ng-container>
-
-  <ng-template #profileCustomerNav>
-    <div class="profile-bottom-nav profile-bottom-nav--3">
-      <button type="button" class="nav-item" (click)="setBottomTab('home')">
-        <ion-icon name="home-outline"></ion-icon>
-        <span>Home</span>
-      </button>
-      <button type="button" class="nav-item" (click)="setBottomTab('explore')">
-        <ion-icon name="compass-outline"></ion-icon>
-        <span>Explore</span>
-      </button>
-      <button type="button" class="nav-item active">
-        <ion-icon name="person-outline"></ion-icon>
-        <span>Profile</span>
-      </button>
-    </div>
-  </ng-template>
+  <app-bottom-nav [items]="bottomNavItems" [activeId]="activeBottomTab" (selected)="setBottomTab($event)"></app-bottom-nav>
 </ion-content>

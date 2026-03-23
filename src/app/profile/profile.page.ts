@@ -42,6 +42,24 @@ export class ProfilePage implements OnInit {
     return this.role === 'admin';
   }
 
+  get bottomNavItems(): any[] {
+    if (this.isAdmin) {
+      return [
+        { id: 'home', label: 'Home', icon: 'home-outline' },
+        { id: 'explore', label: 'Explore', icon: 'compass-outline' },
+        { id: 'create', icon: 'add-outline', center: true, ariaLabel: 'Create' },
+        { id: 'library', label: 'User', icon: 'play-outline' },
+        { id: 'profile', label: 'Profile', icon: 'person-outline' },
+      ];
+    }
+
+    return [
+      { id: 'home', label: 'Home', icon: 'home-outline' },
+      { id: 'explore', label: 'Explore', icon: 'compass-outline' },
+      { id: 'profile', label: 'Profile', icon: 'person-outline' },
+    ];
+  }
+
   get profileIdentityLabel(): string {
     return this.isAdmin ? 'EMAIL' : 'MOBILE NUMBER';
   }

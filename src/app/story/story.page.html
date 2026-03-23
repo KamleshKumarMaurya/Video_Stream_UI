@@ -171,54 +171,7 @@
       </div>
     </div>
 
-  <ng-container *ngIf="isAdmin; else storyCustomerNav">
-    <div class="sp-bottom-nav">
-      <button type="button" class="sp-nav-item" [class.active]="activeBottomTab === 'home'" (click)="setBottomTab('home')">
-        <ion-icon name="home-outline"></ion-icon>
-        <span>Home</span>
-      </button>
-
-      <button type="button" class="sp-nav-item" [class.active]="activeBottomTab === 'explore'" (click)="setBottomTab('explore')">
-        <ion-icon name="compass-outline"></ion-icon>
-        <span>Explore</span>
-      </button>
-
-      <button type="button" class="sp-nav-item sp-nav-item--center" [class.active]="activeBottomTab === 'story'" (click)="setBottomTab('story')" aria-label="Story">
-        <div class="sp-center-pill">
-          <ion-icon name="film-outline"></ion-icon>
-        </div>
-      </button>
-
-      <button type="button" class="sp-nav-item" [class.active]="activeBottomTab === 'library'" (click)="setBottomTab('library')">
-        <ion-icon name="play-outline"></ion-icon>
-        <span>User</span>
-      </button>
-
-      <button type="button" class="sp-nav-item" [class.active]="activeBottomTab === 'profile'" (click)="setBottomTab('profile')">
-        <ion-icon name="person-outline"></ion-icon>
-        <span>Profile</span>
-      </button>
-    </div>
-  </ng-container>
-
-  <ng-template #storyCustomerNav>
-    <div class="sp-bottom-nav sp-bottom-nav--3">
-      <button type="button" class="sp-nav-item" (click)="setBottomTab('home')">
-        <ion-icon name="home-outline"></ion-icon>
-        <span>Home</span>
-      </button>
-
-      <button type="button" class="sp-nav-item" (click)="setBottomTab('explore')">
-        <ion-icon name="compass-outline"></ion-icon>
-        <span>Explore</span>
-      </button>
-
-      <button type="button" class="sp-nav-item" (click)="setBottomTab('profile')">
-        <ion-icon name="person-outline"></ion-icon>
-        <span>Profile</span>
-      </button>
-    </div>
-  </ng-template>
+  <app-bottom-nav [items]="bottomNavItems" [activeId]="activeBottomTab" (selected)="setBottomTab($event)"></app-bottom-nav>
 
   <ion-popover
     class="quality-popover"
@@ -241,4 +194,3 @@
     </ng-template>
   </ion-popover>
 </ion-content>
-
