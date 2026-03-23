@@ -52,6 +52,10 @@ export class AdminService {
     return this.http.get(`${this.base}/admin/customers/${customerId}`, { headers: this.buildHeaders() });
   }
 
+  getCustomerDashboardUsers(): Observable<any> {
+    return this.http.get(`${this.base}/admin/customers/dashboard/users`, { headers: this.buildHeaders() });
+  }
+
   updateCustomerStatus(customerId: string | number, active: boolean): Observable<any> {
     const params = new HttpParams().set('active', String(active));
     return this.http.put(`${this.base}/admin/customers/${customerId}/status`, null, { headers: this.buildHeaders(), params });

@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, OnDestroy, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ToastController } from '@ionic/angular';
@@ -14,7 +14,7 @@ type LoginStep = 'phone' | 'otp';
   templateUrl: './login.page.html',
   styleUrls: ['./login.page.scss'],
 })
-export class LoginPage {
+export class LoginPage implements OnDestroy {
   private fb = inject(FormBuilder);
   private router = inject(Router);
   private toastController = inject(ToastController);
@@ -52,8 +52,13 @@ export class LoginPage {
   isSendingOtp = false;
   isVerifyingOtp = false;
   isAdminSigningIn = false;
+  isResendLocked = false;
+  resendUnlockAtMs = 0;
+  resendRemainingLabel = '';
 
   private lastSentMobileNo: string | null = null;
+  private resendUnlockTimer: ReturnType<typeof setTimeout> | null = null;
+  private resendCountdownTimer: ReturnType<typeof setInterval> | null = null;
 
   goBack() {
     if (this.step === 'otp') {
@@ -64,6 +69,10 @@ export class LoginPage {
 
   startMobileLogin() {
     this.step = 'phone';
+  }
+
+  openHelpCenter() {
+    this.router.navigateByUrl('/help-center');
   }
 
   async continueWithGoogle() {
@@ -87,6 +96,7 @@ export class LoginPage {
     try {
       await firstValueFrom(this.authService.sendOtp(mobileNo));
       this.lastSentMobileNo = mobileNo;
+      this.startResendCooldown();
 
       await this.presentToast(`OTP sent to ${this.maskPhone(mobileNo)}`);
       this.otpForm.reset();
@@ -136,6 +146,8 @@ export class LoginPage {
   }
 
   async resendOtp() {
+    if (this.isResendLocked) return;
+
     if (!this.lastSentMobileNo) {
       this.step = 'phone';
       return;
@@ -214,9 +226,6 @@ export class LoginPage {
       localStorage.setItem('vs_display_name', role === 'admin' ? 'Admin' : 'Customer');
 
       localStorage.setItem('vs_login_at_ms', String(Date.now()));
-      // localStorage.setItem('vs_auth_payload', JSON.stringify(payload));
-
-      // if (user != null) localStorage.setItem('vs_user_json', JSON.stringify(user));
       if (user?.id != null) localStorage.setItem('vs_user_id', String(user.id));
 
       if (mobileNo) localStorage.setItem('vs_phone', String(mobileNo));
@@ -228,14 +237,21 @@ export class LoginPage {
 
       if (typeof user?.subscriptionActive === 'boolean') {
         localStorage.setItem('vs_subscription_backend_active', user.subscriptionActive ? '1' : '0');
-        if (!user.subscriptionActive) localStorage.removeItem('vs_subscription_paid_until');
       }
 
       const expiryMs = this.parseExpiryMs(user?.subscriptionExpiry);
       if (expiryMs != null) {
         localStorage.setItem('vs_subscription_backend_expiry_ms', String(expiryMs));
-        if (expiryMs > Date.now()) localStorage.setItem('vs_subscription_paid_until', String(expiryMs));
       }
+
+      localStorage.removeItem('vs_subscription_active');
+      localStorage.removeItem('vs_subscription_trial_started_at');
+      localStorage.removeItem('vs_subscription_trial_days');
+      localStorage.removeItem('vs_subscription_paid_until');
+      localStorage.removeItem('vs_subscription_plan_months');
+      localStorage.removeItem('vs_subscription_plan_id');
+      localStorage.removeItem('vs_subscription_plan_name');
+      localStorage.removeItem('vs_subscription_plan_days');
     } catch {
       /* ignore */
     }
@@ -264,6 +280,54 @@ export class LoginPage {
     const msg = err?.error?.message || err?.error?.error || err?.message;
     if (!msg) return null;
     return String(msg);
+  }
+
+  private startResendCooldown(): void {
+    this.clearResendCooldown();
+
+    this.isResendLocked = true;
+    this.resendUnlockAtMs = Date.now() + (6 * 60 * 1000);
+    this.updateResendRemainingLabel();
+
+    this.resendCountdownTimer = setInterval(() => {
+      this.updateResendRemainingLabel();
+      if (Date.now() >= this.resendUnlockAtMs) {
+        this.isResendLocked = false;
+        this.resendUnlockAtMs = 0;
+        this.resendRemainingLabel = '';
+        this.clearResendCooldown();
+      }
+    }, 1000);
+
+    this.resendUnlockTimer = setTimeout(() => {
+      this.isResendLocked = false;
+      this.resendUnlockAtMs = 0;
+      this.resendRemainingLabel = '';
+      this.clearResendCooldown();
+    }, 6 * 60 * 1000);
+  }
+
+  private updateResendRemainingLabel(): void {
+    const remainingMs = Math.max(0, this.resendUnlockAtMs - Date.now());
+    const totalSeconds = Math.ceil(remainingMs / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    this.resendRemainingLabel = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  }
+
+  private clearResendCooldown(): void {
+    if (this.resendUnlockTimer != null) {
+      clearTimeout(this.resendUnlockTimer);
+      this.resendUnlockTimer = null;
+    }
+    if (this.resendCountdownTimer != null) {
+      clearInterval(this.resendCountdownTimer);
+      this.resendCountdownTimer = null;
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.clearResendCooldown();
   }
 
   private maskPhone(phone: string): string {

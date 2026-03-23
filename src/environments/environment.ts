@@ -4,7 +4,10 @@
 
 export const environment = {
   production: false,
-  apiBase: 'http://192.168.1.78:8080'
+  apiBase: 'https://migration-contributors-velocity-mlb.trycloudflare.com',
+  adminLoginEnabled: false,
+  razorpayKeyId: '',
+  razorpayCurrency: 'INR',
 };
 
 /*

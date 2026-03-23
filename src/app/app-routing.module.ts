@@ -25,6 +25,11 @@ const routes: Routes = [
     canMatch: [authGuard],
   },
   {
+    path: 'stories/upload-episode',
+    loadChildren: () => import('./upload-episode/upload-episode.module').then(m => m.UploadEpisodePageModule),
+    canMatch: [authGuard],
+  },
+  {
     path: 'story/:id',
     loadChildren: () => import('./story/story.module').then(m => m.StoryPageModule),
     canMatch: [authGuard],
@@ -43,6 +48,15 @@ const routes: Routes = [
     path: 'subscription',
     loadChildren: () => import('./subscription/subscription.module').then(m => m.SubscriptionPageModule),
     canMatch: [authGuard],
+  },
+  {
+    path: 'downloads',
+    loadChildren: () => import('./downloads/downloads.module').then(m => m.DownloadsPageModule),
+    canMatch: [authGuard],
+  },
+  {
+    path: 'help-center',
+    loadChildren: () => import('./help-center/help-center.module').then(m => m.HelpCenterPageModule),
   },
   {
     path: '',

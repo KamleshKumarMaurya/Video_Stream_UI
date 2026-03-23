@@ -36,12 +36,104 @@
 /* @import "@ionic/angular/css/palettes/dark.class.css"; */
 @import "@ionic/angular/css/palettes/dark.system.css";
 
+/* Global theme helpers */
+:root {
+  --vs-header-bg: #14002c;
+  --vs-safe-area-top: var(--ion-safe-area-top, env(safe-area-inset-top, 0px));
+  --vs-safe-area-bottom: var(--ion-safe-area-bottom, env(safe-area-inset-bottom, 0px));
+}
+
 /* Shared utilities */
 .vs-sticky-topbar {
   position: sticky;
-  top: var(--ion-safe-area-top, 0px);
+  top: var(--vs-safe-area-top, 0px);
   z-index: 50;
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   background: rgba(7, 0, 24, 0.55);
+}
+
+/* Global "VideoStory" header (match bottom-nav look) */
+.vs-app-header {
+  z-index: 50;
+}
+
+.vs-app-toolbar {
+  --background: transparent;
+  --border-color: transparent;
+  --padding-start: 18px;
+  --padding-end: 18px;
+  --color: #ffffff;
+}
+
+.vs-app-toolbar::part(background) {
+  background: radial-gradient(140% 120% at 20% 0%, rgba(167, 107, 255, 0.24) 0%, rgba(167, 107, 255, 0) 55%),
+    var(--vs-header-bg);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 18px 52px rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.vs-app-toolbar-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: calc(6px + var(--vs-safe-area-top, 0px)) 0 10px;
+}
+
+.vs-hdr-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.vs-hdr-brand-btn {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: inherit;
+  text-align: left;
+}
+
+.vs-hdr-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 16px;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.vs-hdr-name {
+  font-weight: 950;
+  font-size: 18px;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vs-hdr-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.vs-hdr-action {
+  width: 40px;
+  height: 40px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.26);
+  color: rgba(255, 255, 255, 0.92);
+  display: grid;
+  place-items: center;
+}
+
+.vs-hdr-action ion-icon {
+  font-size: 20px;
 }

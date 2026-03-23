@@ -1,17 +1,6 @@
-<ion-content class="story-page" fullscreen [scrollY]="false">
+<ion-content class="story-page" [scrollY]="false">
   <div class="sp-shell">
     <div class="sp-fixed">
-    <div class="sp-topbar vs-sticky-topbar">
-      <div class="sp-brand">
-        <img class="sp-avatar" src="assets/story.png" alt="" />
-        <div class="sp-brand-name">VideoStory</div>
-      </div>
-
-      <button type="button" class="sp-icon-btn" aria-label="Notifications">
-        <ion-icon name="notifications-outline"></ion-icon>
-      </button>
-    </div>
-
       <div class="sp-hero" id="hero-card" (pointerup)="onHeroPointerUp($event)">
         <video
           id="story-video"
@@ -23,12 +12,25 @@
 
         <div class="sp-hero-dim" aria-hidden="true"></div>
 
+        <div class="sp-video-loader" *ngIf="isVideoLoading" aria-label="Loading video">
+          <ion-spinner name="crescent"></ion-spinner>
+        </div>
+
         <div class="sp-seek-hud sp-seek-hud--left" [class.show]="seekHudSide === 'left'">{{ seekHudText }}</div>
         <div class="sp-seek-hud sp-seek-hud--right" [class.show]="seekHudSide === 'right'">{{ seekHudText }}</div>
 
-      <button class="sp-fs-btn" type="button" (click)="toggleFullscreen($event)" aria-label="Fullscreen">
-        <ion-icon [name]="isFullscreen ? 'contract-outline' : 'expand-outline'"></ion-icon>
-      </button>
+        <button class="sp-fs-btn" type="button" (click)="toggleFullscreen($event)" aria-label="Fullscreen">
+          <ion-icon [name]="isFullscreen ? 'contract-outline' : 'expand-outline'"></ion-icon>
+        </button>
+
+        <button *ngIf="!isAdmin" class="sp-wishlist-btn" [class.is-active]="isWishlisted" type="button" (click)="toggleWishlist($event)" [attr.aria-label]="wishlistButtonLabel">
+          <ion-icon [name]="isWishlisted ? 'heart' : 'heart-outline'"></ion-icon>
+        </button>
+
+        <button *ngIf="availableQualities.length" class="sp-quality-btn" type="button" (click)="openQuality($event)">
+          <ion-icon name="settings-outline"></ion-icon>
+          <span>{{ qualityDisplayLabel || 'Quality' }}</span>
+        </button>
 
       <button *ngIf="!isFullscreen" class="sp-hero-play" type="button" (click)="togglePlay()" aria-label="Play">
         <ion-icon [name]="isPlaying ? 'pause' : 'play'"></ion-icon>
@@ -57,41 +59,30 @@
       <div class="sp-episode">{{ episodeSeasonLabel }}</div>
       <div class="sp-title">{{ currentEpisode?.title || story?.title || 'Story' }}</div>
 
-      <!-- <div class="sp-author">
-        <img class="sp-author-avatar" src="assets/story.png" alt="" />
-        <div class="sp-author-name">{{ authorName }}</div>
-        <div class="sp-dot" aria-hidden="true">&#8226;</div>
-        <div class="sp-views" *ngIf="viewsLabel">{{ viewsLabel }} views</div>
-      </div> -->
+      
     </div>
 
-    <!-- <div class="sp-controls">
-      <button type="button" class="sp-ctrl sp-ctrl--left" (click)="seekBy(-10)">
-        <ion-icon name="play-back"></ion-icon>
-        <div class="sp-ctrl-label">Rewind</div>
-      </button>
+    <div class="sp-preview-banner" *ngIf="!isAdmin && subscriptionChecked && !isSubscribed">
+      <div class="sp-preview-left">
+        <div class="sp-preview-title">Free preview</div>
+        <div class="sp-preview-sub">Watch first {{ freeEpisodeCount }} episodes free. Subscribe to unlock all.</div>
+      </div>
+      <button type="button" class="sp-preview-btn" (click)="goToSubscription()">Subscribe</button>
+    </div>
 
-      <button type="button" class="sp-ctrl sp-ctrl--icon" (click)="playPrevEpisode()" aria-label="Previous">
-        <ion-icon name="play-skip-back-outline"></ion-icon>
-      </button>
+    <div class="sp-preview-banner sp-preview-banner--loading" *ngIf="!isAdmin && !subscriptionChecked && isCheckingSubscription">
+      <div class="sp-preview-left">
+        <div class="sp-preview-title">Checking subscription...</div>
+        <div class="sp-preview-sub">Please wait</div>
+      </div>
+      <ion-spinner name="crescent"></ion-spinner>
+    </div>
 
-      <button type="button" class="sp-ctrl sp-ctrl--main" (click)="togglePlay()" aria-label="Play/Pause">
-        <ion-icon [name]="isPlaying ? 'pause' : 'play'"></ion-icon>
-      </button>
-
-      <button type="button" class="sp-ctrl sp-ctrl--icon" (click)="playNextEpisode()" aria-label="Next">
-        <ion-icon name="play-skip-forward-outline"></ion-icon>
-      </button>
-
-      <button type="button" class="sp-ctrl sp-ctrl--right" (click)="cyclePlaybackRate()">
-        <div class="sp-speed">{{ playbackRateLabel }}</div>
-        <div class="sp-ctrl-label">Speed</div>
-      </button>
-    </div> -->
+    
 
 	    <div class="sp-next-head">
 	      <div class="sp-next-title">Next Episodes</div>
-	      <button type="button" class="sp-autoplay" (click)="toggleAutoplay()" [disabled]="!nextEpisodes?.length">
+      <button type="button" class="sp-autoplay" (click)="toggleAutoplay()" [disabled]="!nextEpisodes.length">
 	        Autoplay {{ autoplayOn ? 'ON' : 'OFF' }}
 	      </button>
 	    </div>
@@ -100,15 +91,24 @@
 	
 	    <div class="sp-playlist">
 	    <div class="sp-next-list" *ngIf="nextEpisodes?.length; else noEpisodesTpl">
-	      <button
-	        type="button"
-	        class="sp-next-card"
-	        *ngFor="let ep of nextEpisodes; let i = index"
-	        (click)="playEpisode(ep)"
-	      >
-	        <div class="sp-next-thumb">
-	          <img class="sp-next-img" [src]="toThumb(ep)" alt="" (error)="onImgError($event)" />
-	          <div class="sp-next-time">{{ getEpisodeDuration(ep, i) }}</div>
+      <div
+        class="sp-next-card"
+        *ngFor="let ep of nextEpisodes; let i = index"
+        (click)="onEpisodeTap(ep, i)"
+        (keydown.enter)="onEpisodeTap(ep, i)"
+        (keydown.space)="$event.preventDefault(); onEpisodeTap(ep, i)"
+        tabindex="0"
+        role="button"
+        [class.locked]="!isAdmin && subscriptionChecked && !isSubscribed && i >= freeEpisodeCount"
+      >
+        <div class="sp-next-thumb">
+          <img class="sp-next-img" [src]="toThumb(ep)" alt="" (error)="onImgError($event)" />
+          <div class="sp-next-time">{{ getEpisodeDuration(ep, i) }}</div>
+            <div class="sp-ep-badge sp-ep-badge--free" *ngIf="!isAdmin && subscriptionChecked && !isSubscribed && i < freeEpisodeCount">FREE</div>
+            <div class="sp-ep-badge sp-ep-badge--locked" *ngIf="!isAdmin && subscriptionChecked && !isSubscribed && i >= freeEpisodeCount">
+              <ion-icon name="lock-closed-outline"></ion-icon>
+              Locked
+            </div>
 	        </div>
 	
 	        <div class="sp-next-meta">
@@ -116,12 +116,29 @@
 	            <div class="sp-next-ep" [class.next]="getEpisodeListLabel(ep, i).startsWith('NEXT')">
 	              {{ getEpisodeListLabel(ep, i) }}
 	            </div>
-	            <div class="sp-playing" *ngIf="isEpisodeActive(ep)">PLAYING</div>
+	            <div class="sp-next-top-right">
+	              <div class="sp-playing" *ngIf="isEpisodeActive(ep)">PLAYING</div>
+	              <button
+	                type="button"
+	                class="sp-download-btn"
+	                [class.is-active]="isDownloadedEpisode(ep)"
+	                [class.is-busy]="isDownloadBusy(ep)"
+	                [class.is-requesting]="isDownloadRequesting(ep)"
+	                [disabled]="isEpisodeLockedByIndex(i) || isDownloadingEpisode(ep)"
+	                (click)="downloadEpisode(ep, i, $event)"
+	                [attr.aria-label]="isDownloadedEpisode(ep) ? 'Downloaded' : 'Download episode'"
+	              >
+	                <span class="sp-download-pct" *ngIf="isDownloadBusy(ep); else downloadIconTpl">{{ getDownloadButtonLabel(ep) }}</span>
+	                <ng-template #downloadIconTpl>
+	                  <ion-icon [name]="isDownloadedEpisode(ep) ? 'checkmark-circle' : 'download-outline'"></ion-icon>
+	                </ng-template>
+	              </button>
+	            </div>
 	          </div>
 	          <div class="sp-next-name">{{ ep?.title || ('Episode ' + (ep?.episodeNumber || '')) }}</div>
-	          <div class="sp-next-sub">{{ ep?.description || ep?.summary || '...' }}</div>
+	          <div class="sp-next-sub">{{ getEpisodeDuration(ep, i) || ep?.summary || '...' }}</div>
 	        </div>
-	      </button>
+	      </div>
 	    </div>
 	
 	    <ng-template #noEpisodesTpl>
@@ -130,6 +147,29 @@
 	
 	  </div>
 	  </div>
+
+    <div class="sp-lock-overlay" *ngIf="lockOpen" (click)="closeLock()">
+      <div class="sp-lock-card" (click)="$event.stopPropagation()">
+        <div class="sp-lock-top">
+          <div class="sp-lock-icon">
+            <ion-icon name="lock-closed"></ion-icon>
+          </div>
+          <button type="button" class="sp-lock-close" (click)="closeLock()" aria-label="Close">
+            <ion-icon name="close"></ion-icon>
+          </button>
+        </div>
+
+        <div class="sp-lock-title">
+          Unlock Episode {{ lockedEpisodeLabel }}
+        </div>
+        <div class="sp-lock-sub">
+          Subscribe to continue watching. First {{ freeEpisodeCount }} episodes are free.
+        </div>
+
+        <button type="button" class="sp-lock-btn sp-lock-btn--primary" (click)="goToSubscription()">Subscribe Now</button>
+        <button type="button" class="sp-lock-btn" (click)="closeLock()">Not now</button>
+      </div>
+    </div>
 
   <ng-container *ngIf="isAdmin; else storyCustomerNav">
     <div class="sp-bottom-nav">
@@ -179,130 +219,26 @@
       </button>
     </div>
   </ng-template>
+
+  <ion-popover
+    class="quality-popover"
+    [isOpen]="qualityPopoverOpen"
+    side="bottom"
+    alignment="end"
+    [showBackdrop]="false"
+    (didDismiss)="qualityPopoverOpen = false"
+  >
+    <ng-template>
+      <ion-content class="quality-popover-content">
+        <div class="quality-title">Quality</div>
+        <ion-radio-group [value]="selectedQualityLevel" (ionChange)="changeQuality($event)">
+          <ion-item lines="none" class="quality-item" *ngFor="let q of availableQualities">
+            <ion-label>{{ q.label }}</ion-label>
+            <ion-radio slot="end" [value]="q.level"></ion-radio>
+          </ion-item>
+        </ion-radio-group>
+      </ion-content>
+    </ng-template>
+  </ion-popover>
 </ion-content>
 
-<!-- LEGACY STORY TEMPLATE (kept for reference during redesign)
-<ion-content class="story-page" fullscreen [scrollY]="false">
-  <div class="story-shell">
-    <div class="video-pane">
-      <div class="hero-card" id="hero-card">
-        <video
-          id="story-video"
-          class="hero-video"
-          playsinline
-          preload="metadata"
-          [attr.poster]="heroImageUrl"
-        ></video>
-
-        <div class="hero-shade"></div>
-
-        <button class="fs-btn" type="button" (click)="toggleFullscreen($event)" aria-label="Fullscreen">
-          <ion-icon [name]="isFullscreen ? 'contract-outline' : 'expand-outline'"></ion-icon>
-        </button>
-
-        <div class="fs-hud" *ngIf="isFullscreen">
-          <ion-range
-            class="fs-range"
-            [min]="0"
-            [max]="durationSec || 0"
-            [value]="seeking ? seekingValueSec : currentTimeSec"
-            [pin]="false"
-            (ionKnobMoveStart)="onSeekStart()"
-            (ionInput)="onSeekInput($event)"
-            (ionKnobMoveEnd)="onSeekEnd($event)"
-          ></ion-range>
-
-          <div class="fs-time-row">
-            <div class="fs-time">{{formatTime(currentTimeSec)}}</div>
-            <div class="fs-time">{{formatTime(durationSec)}}</div>
-          </div>
-        </div>
-
-        <div class="hero-text">
-          <div class="hero-title">{{story?.title || currentEpisode?.title || 'Story'}}</div>
-          <div class="hero-by" *ngIf="story?.author || story?.by || story?.creator">
-            By {{story?.author || story?.by || story?.creator}}
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="bottom-pane">
-      <div class="player-panel">
-      <div class="timeline">
-        <ion-range
-          class="time-range"
-          [min]="0"
-          [max]="durationSec || 0"
-          [value]="seeking ? seekingValueSec : currentTimeSec"
-          [pin]="false"
-          (ionKnobMoveStart)="onSeekStart()"
-          (ionInput)="onSeekInput($event)"
-          (ionKnobMoveEnd)="onSeekEnd($event)"
-        ></ion-range>
-
-        <div class="time-row">
-          <div class="time">{{formatTime(currentTimeSec)}}</div>
-          <div class="time">{{formatTime(durationSec)}}</div>
-        </div>
-
-        <button class="quality-mini" type="button" *ngIf="availableQualities.length" (click)="openQuality($event)">
-          {{qualityDisplayLabel}}
-          <ion-icon name="settings-outline"></ion-icon>
-        </button>
-
-        <ion-popover
-          class="quality-popover"
-          [isOpen]="qualityPopoverOpen"
-          [event]="qualityPopoverEvent"
-          side="bottom"
-          alignment="end"
-          [showBackdrop]="false"
-          (didDismiss)="qualityPopoverOpen = false"
-        >
-          <ng-template>
-            <ion-content class="quality-popover-content">
-              <div class="quality-title">Quality</div>
-              <ion-radio-group [value]="selectedQualityLevel" (ionChange)="changeQuality($event)">
-                <ion-item lines="none" class="quality-item" *ngFor="let q of availableQualities">
-                  <ion-label>{{ q.label }}</ion-label>
-                  <ion-radio slot="end" [value]="q.level"></ion-radio>
-                </ion-item>
-              </ion-radio-group>
-            </ion-content>
-          </ng-template>
-        </ion-popover>
-      </div>
-
-      <div class="episodes">
-        <div class="eps-title">Episodes</div>
-        <div class="eps-divider"></div>
-
-        <div class="eps-scroll">
-          <button class="ep-row" type="button" *ngFor="let ep of episodes" (click)="playEpisode(ep)">
-            <div class="ep-thumb">
-              <img [src]="storyService.toAbsUrl(ep.thumbnail) || heroImageUrl" alt="" (error)="onImgError($event)"/>
-              <div class="ep-time">{{ep.duration || formatTime(ep.durationSec || 0)}}</div>
-            </div>
-
-            <div class="ep-meta">
-              <div class="ep-top">
-                <div class="ep-name">{{ep.title || ('Episode ' + ep.episodeNumber)}}</div>
-                <div class="ep-right">{{ep.duration || ''}}</div>
-              </div>
-              <div class="ep-badges">
-                <span class="badge playing" *ngIf="isEpisodeActive(ep)">
-                  <span class="badge-dot">+</span>
-                  Playing
-                </span>
-                <span class="badge new" *ngIf="!isEpisodeActive(ep) && isEpisodeNew(ep)">New</span>
-              </div>
-            </div>
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-  </div>
-</ion-content>
--->

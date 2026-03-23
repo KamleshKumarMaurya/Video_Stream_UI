@@ -1,23 +1,65 @@
-<ion-content class="home-page" fullscreen>
+<ion-content class="home-page">
   <div class="home-bg" aria-hidden="true"></div>
 
   <div class="home-wrap">
-    <div class="topbar vs-sticky-topbar">
-      <button type="button" class="brand" (click)="setBottomTab('profile')" aria-label="Profile">
-        <img class="brand-avatar" src="assets/story.png" alt="" />
-        <span class="brand-name">VideoStory</span>
-      </button>
-
-      <button type="button" class="icon-btn" (click)="onNotifications()" aria-label="Notifications">
-        <ion-icon name="notifications-outline"></ion-icon>
-      </button>
-    </div>
-
     <ng-container [ngSwitch]="activeBottomTab">
       <ng-container *ngSwitchCase="'home'">
+        <div class="latest-block" *ngIf="latestActive as latest">
+          <div class="latest-stack" role="button" tabindex="0" (click)="onLatestStackClick($event)">
+            <div
+              class="latest-back latest-back--2"
+              *ngIf="latestPeek2 as p2"
+              [style.backgroundImage]="'url(' + toThumb(p2) + ')'"
+              [style.transform]="latestBack2Transform"
+              aria-hidden="true"
+            ></div>
+            <div
+              class="latest-back latest-back--1"
+              *ngIf="latestPeek1 as p1"
+              [style.backgroundImage]="'url(' + toThumb(p1) + ')'"
+              [style.transform]="latestBack1Transform"
+              aria-hidden="true"
+            ></div>
+
+            <div
+              class="latest-front"
+              [class.latest-front--dragging]="latestIsDragging"
+              [class.latest-front--throwing]="latestIsThrowing"
+              [style.transform]="latestFrontTransform"
+              (pointerdown)="onLatestPointerDown($event)"
+              (pointermove)="onLatestPointerMove($event)"
+              (pointerup)="onLatestPointerUp($event)"
+              (pointercancel)="onLatestPointerCancel($event)"
+            >
+              <img class="latest-img" [src]="toThumb(latest)" alt="" (error)="onImgError($event)" />
+              <div class="latest-dim" aria-hidden="true"></div>
+
+              <div class="latest-badge">
+                <ion-icon name="sparkles-outline" aria-hidden="true"></ion-icon>
+                <span>Newly Added</span>
+              </div>
+
+              <div class="latest-meta">
+                <div class="latest-name">{{ latest?.title || 'New story' }}</div>
+                <div class="latest-sub">{{ latest?.category || 'Story' }}</div>
+              </div>
+
+              <div class="latest-actions" (click)="$event.stopPropagation()">
+                
+                <button *ngIf="!isAdmin" type="button" class="latest-action"  [class.active]="isWishlisted(latest)" (click)="toggleWishlist(latest, $event)" [attr.aria-label]="isWishlisted(latest) ? 'Remove from wishlist' : 'Add to wishlist'">
+                  <ion-icon [name]="isWishlisted(latest) ? 'heart' : 'heart-outline'"></ion-icon>
+                </button>
+                <button type="button" class="latest-action latest-action--play" (click)="playLatest($event)" aria-label="Play">
+                  <ion-icon name="play"></ion-icon>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="greeting">
-          <!-- <div class="greeting-title">Hello, {{ displayName }}!</div> -->
-          <!-- <div class="greeting-sub">Ready for your daily visual feed?</div> -->
+          
+          
         </div>
 
         <div class="section-head">
@@ -29,19 +71,23 @@
           <button type="button" class="trend-main" (click)="openStory(trendingMain)" [disabled]="!trendingMain">
             <img class="card-img" [src]="toThumb(trendingMain)" alt="" (error)="onImgError($event)" />
             <div class="card-dim"></div>
-            <!-- <div class="time-badge">{{ getDurationForIndex(0) }}</div> -->
+            <button
+              *ngIf="!isAdmin"
+              type="button"
+              class="wishlist-fab wishlist-fab--card"
+              [class.active]="isWishlisted(trendingMain)"
+              (click)="toggleWishlist(trendingMain, $event)"
+              [attr.aria-label]="isWishlisted(trendingMain) ? 'Remove from wishlist' : 'Add to wishlist'"
+            >
+              <ion-icon [name]="isWishlisted(trendingMain) ? 'heart' : 'heart-outline'"></ion-icon>
+            </button>
+            
             <div class="card-body">
               <div class="pill">{{ trendingMain?.category || 'Lifestyle' }}</div>
               <div class="card-title">{{ trendingMain?.title || 'Trending story' }}</div>
               <div class="card-meta">
-                <!-- <span class="meta-item">
-                  <ion-icon name="time-outline" aria-hidden="true"></ion-icon>
-                  {{ getDurationForIndex(0) }}
-                </span> -->
-                <!-- <span class="meta-item">
-                  <ion-icon name="eye-outline" aria-hidden="true"></ion-icon>
-                  {{ trendingMain?.views || '—' }}
-                </span> -->
+                
+                
               </div>
             </div>
           </button>
@@ -55,7 +101,17 @@
             >
               <img class="mini-img" [src]="toThumb(s)" alt="" (error)="onImgError($event)" />
               <div class="mini-dim"></div>
-              <!-- <div class="time-badge mini-time">{{ getDurationForIndex(i + 1) }}</div> -->
+              <button
+                *ngIf="!isAdmin"
+                type="button"
+                class="wishlist-fab wishlist-fab--mini"
+                [class.active]="isWishlisted(s)"
+                (click)="toggleWishlist(s, $event)"
+                [attr.aria-label]="isWishlisted(s) ? 'Remove from wishlist' : 'Add to wishlist'"
+              >
+                <ion-icon [name]="isWishlisted(s) ? 'heart' : 'heart-outline'"></ion-icon>
+              </button>
+              
               <div class="mini-body">
                 <div class="mini-tag orange">{{ (s?.category || 'TRENDING') | uppercase }}</div>
                 <div class="mini-title">{{ s?.title || 'Story' }}</div>
@@ -85,23 +141,24 @@
           >
             <div class="pick-media">
               <img class="pick-img" [src]="toThumb(s)" alt="" (error)="onImgError($event)" />
-              <!-- <div class="time-badge pick-time">{{ getDurationForIndex(i + 2) }}</div> -->
+              <button
+                *ngIf="!isAdmin"
+                type="button"
+                class="wishlist-fab wishlist-fab--pick"
+                [class.active]="isWishlisted(s)"
+                (click)="toggleWishlist(s, $event)"
+                [attr.aria-label]="isWishlisted(s) ? 'Remove from wishlist' : 'Add to wishlist'"
+              >
+                <ion-icon [name]="isWishlisted(s) ? 'heart' : 'heart-outline'"></ion-icon>
+              </button>
+              
             </div>
             <div class="pick-cat">{{ s?.category || (i === 0 ? 'Entertainment' : 'Nature') }}</div>
             <div class="pick-title">{{ s?.title || 'Story' }}</div>
           </button>
         </div>
 
-        <!-- <div class="share-card" *ngIf="isAdmin">
-          <div class="share-left">
-            <div class="share-title">Share Your<br />Own<br />Story.</div>
-            <div class="share-sub">Join 2M+ creators filming<br />their daily lives in<br />cinematic motion.</div>
-            <button type="button" class="share-btn" (click)="setBottomTab('create')">Start<br />Creating</button>
-          </div>
-          <div class="share-art" aria-hidden="true">
-            <ion-icon name="ticket-outline"></ion-icon>
-          </div>
-        </div> -->
+        
       </ng-container>
 
       <ng-container *ngSwitchCase="'explore'">
@@ -111,10 +168,9 @@
         </div>
 
         <div class="explore-grid">
-          <button type="button" class="explore-card" *ngFor="let s of stories; let i = index" (click)="openStory(s)">
+          <button type="button" class="explore-card" *ngFor="let s of exploreStories; let i = index" (click)="openStory(s)">
             <div class="explore-media">
               <img class="explore-img" [src]="toThumb(s)" alt="" (error)="onImgError($event)" />
-              <div class="time-badge pick-time">{{ getDurationForIndex(i) }}</div>
             </div>
             <div class="explore-meta">
               <div class="explore-cat">{{ (s?.category || 'Story') }}</div>
@@ -191,132 +247,3 @@
   </ng-template>
 </ion-content>
 
-<!-- LEGACY HOME TEMPLATE (kept for reference during redesign)
-<ion-content class="home-page" fullscreen>
-  <div class="phone-shell">
-    <div class="screen-card">
-      <div class="screen-scroll">
-        <div class="page-pad">
-          <div class="top-row">
-            <div class="hello">
-              <div class="hello-text">Hi, {{displayName}}!</div>
-            </div>
-            <div class="top-actions">
-              <button class="icon-btn" type="button" (click)="onSearch()" aria-label="Search">
-                <ion-icon name="search-outline"></ion-icon>
-              </button>
-              <button class="avatar-btn" type="button" (click)="onNotifications()" aria-label="Profile">
-                <img class="avatar-img" src="assets/story.png" alt="" />
-              </button>
-            </div>
-          </div>
-
-          <div class="section-head first">
-            <div class="section-title">Explore Video Stories</div>
-          </div>
-
-          <div class="top-tabs">
-            <button
-              class="tab-chip"
-              type="button"
-              *ngFor="let t of topTabs"
-              [class.active]="t === activeTopTab"
-              (click)="setTopTab(t)"
-            >
-              {{t}}
-            </button>
-          </div>
-
-          <div class="section-head tight">
-            <div class="section-title">Trending Stories</div>
-          </div>
-
-          <div class="h-scroll">
-            <button
-              class="story-tile"
-              type="button"
-              *ngFor="let s of exploreStories; let i = index"
-              (click)="openStory(s)"
-            >
-              <img class="tile-img" loading="lazy" [src]="storyService.toAbsUrl(s.thumbnail) || 'assets/story.png'" 
-               alt="" (error)="onImgError($event)" />
-              <div class="tile-overlay">
-                <div class="tile-title">{{s.title}}</div>
-                <div class="tile-time">{{getDurationForIndex(i)}}</div>
-              </div>
-            </button>
-          </div>
-
-          <div class="section-head tight">
-            <div class="section-title">Categories For You</div>
-          </div>
-
-          <div class="chip-row">
-            <button
-              class="cat-chip"
-              type="button"
-              *ngFor="let c of categoryChips"
-              [class.active]="c === activeCategoryChip"
-              (click)="setCategoryChip(c)"
-            >
-              {{c}}
-            </button>
-          </div>
-
-          <div class="section-head tight">
-            <div class="section-title">Popular Picks</div>
-          </div>
-
-          <div class="picks-grid">
-            <button
-              class="pick-card"
-              type="button"
-              *ngFor="let s of popularPicks; let i = index"
-              [class.wide]="i === 2"
-              (click)="openStory(s)"
-            >
-              <img class="pick-img" [src]="storyService.toAbsUrl(s.thumbnail) || 'assets/story.png'" alt="" (error)="onImgError($event)" />
-              <div class="pick-overlay">
-                <div class="pick-title">{{s.title}}</div>
-                <div class="pick-time">{{getDurationForIndex(i + 2)}}</div>
-              </div>
-            </button>
-          </div>
-        </div>
-
-        <div class="premium-wrap">
-          <div class="premium-card">
-            <div class="premium-left">
-              <div class="crown">👑</div>
-              <div class="premium-text">
-                <div class="premium-title">Go Premium</div>
-                <div class="premium-sub">Unlock Exclusive Video Series</div>
-              </div>
-            </div>
-            <button class="premium-btn" type="button" (click)="upgradeNow()">Upgrade Now</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="bottom-nav">
-        <button class="nav-item" type="button" [class.active]="activeBottomTab==='home'" (click)="setBottomTab('home')">
-          <ion-icon name="home"></ion-icon>
-          <span>Home</span>
-        </button>
-        <button class="nav-item" type="button" [class.active]="activeBottomTab==='explore'" (click)="setBottomTab('explore')">
-          <ion-icon name="compass-outline"></ion-icon>
-          <span>Explore</span>
-        </button>
-        <button class="nav-item" type="button" [class.active]="activeBottomTab==='library'" (click)="setBottomTab('library')">
-          <ion-icon name="library-outline"></ion-icon>
-          <span>User</span>
-        </button>
-        <button class="nav-item" type="button" [class.active]="activeBottomTab==='videos'" (click)="setBottomTab('videos')">
-          <ion-icon name="videocam-outline"></ion-icon>
-          <span>Videos</span>
-        </button>
-      </div>
-    </div>
-  </div>
-</ion-content>
--->

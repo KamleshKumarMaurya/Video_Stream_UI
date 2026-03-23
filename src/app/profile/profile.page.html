@@ -1,39 +1,106 @@
-<ion-content class="profile-page" fullscreen>
+<ion-header class="profile-header" translucent="true">
+  <ion-toolbar>
+    <ion-title>Profile</ion-title>
+    <ion-buttons slot="end">
+      <button type="button" class="profile-icon-btn" (click)="logout()" aria-label="Logout">
+        <ion-icon name="log-out-outline"></ion-icon>
+      </button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="profile-page">
   <div class="profile-bg" aria-hidden="true"></div>
 
   <div class="profile-wrap">
-    <div class="profile-topbar vs-sticky-topbar">
-      <div class="profile-brand">
-        <img class="profile-brand-avatar" src="assets/story.png" alt="" />
-        <div class="profile-brand-name">VideoStory</div>
-      </div>
-
-      <div class="profile-top-actions">
-        <button type="button" class="profile-icon-btn" (click)="logout()" aria-label="Logout">
-          <ion-icon name="log-out-outline"></ion-icon>
-        </button>
-      </div>
-    </div>
-
     <div class="simple-cards">
       <div class="info-card">
-        <div class="info-label">MOBILE NUMBER</div>
-        <div class="info-value">{{ phone || '&#8212;' }}</div>
+        <div class="info-label">{{ profileIdentityLabel }}</div>
+        <div class="info-value">{{ profileIdentityValue }}</div>
         <div class="info-sub" *ngIf="customerCode">Customer: {{ customerCode }}</div>
-        <div class="info-sub" *ngIf="!customerCode">Role: {{ role | uppercase }}</div>
+        
       </div>
 
       <div class="info-card">
         <div class="info-label">SUBSCRIPTION</div>
-        <div class="sub-row">
-          <div class="sub-plan">{{ subscriptionPlan }}</div>
-          <div class="sub-badge" [class.inactive]="subscriptionStatus === 'Inactive'">{{ subscriptionStatus }}</div>
-        </div>
-        <div class="info-sub">{{ subscriptionNote }}</div>
+        <ng-container *ngIf="isAdmin; else customerSubscriptionTpl">
+          <div class="admin-access-card">
+            <div class="admin-access-title">You are admin</div>
+            <div class="admin-access-sub">You have full access.</div>
+          </div>
+        </ng-container>
 
-        <button type="button" class="subscribe-btn" *ngIf="!isAdmin && subscriptionStatus === 'Inactive'" (click)="openSubscription()">
-          Get Subscription
-        </button>
+        <ng-template #customerSubscriptionTpl>
+          <div class="sub-row">
+            <div class="sub-plan">{{ subscriptionPlan }}</div>
+            <div class="sub-badge" [class.inactive]="subscriptionStatus === 'Inactive'">{{ subscriptionStatus }}</div>
+          </div>
+          <div class="info-sub">{{ subscriptionNote }}</div>
+
+          <div class="sub-details" *ngIf="subscriptionExpiryLabel">
+            <div class="sub-detail">
+              <ion-icon name="calendar-outline"></ion-icon>
+              <span>{{ subscriptionExpiryLabel }}</span>
+            </div>
+            <div class="sub-detail" *ngIf="subscriptionRemainingDays != null && subscriptionStatus === 'Active'">
+              <ion-icon name="hourglass-outline"></ion-icon>
+              <span>{{ subscriptionRemainingDays }} day{{ subscriptionRemainingDays === 1 ? '' : 's' }} left</span>
+            </div>
+          </div>
+
+          <button type="button" class="subscribe-btn" *ngIf="subscriptionStatus === 'Inactive'" (click)="openSubscription()">
+            Get Subscription
+          </button>
+        </ng-template>
+      </div>
+
+      <div class="info-card" *ngIf="!isAdmin">
+        <div class="info-label">DOWNLOADS</div>
+        <div class="downloads-row">
+          <div class="downloads-copy">
+            <div class="downloads-title">{{ downloadCount }} saved episode{{ downloadCount === 1 ? '' : 's' }}</div>
+            
+          </div>
+          <button type="button" class="subscribe-btn subscribe-btn--compact" (click)="openDownloads()">
+            View Downloads
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="wishlist-section" *ngIf="!isAdmin">
+      <div class="wishlist-head">
+        <div>
+          <div class="wishlist-kicker">YOUR LIST</div>
+          <div class="wishlist-title">Wishlist</div>
+        </div>
+        <div class="wishlist-count">{{ wishlistItems.length }}/10</div>
+      </div>
+
+      <div class="wishlist-limit">
+        <div class="wishlist-limit-bar">
+          <div class="wishlist-limit-fill" [style.width.%]="(wishlistItems.length / 10) * 100"></div>
+        </div>
+        <div class="wishlist-limit-text">Save up to 10 stories to wishlist.</div>
+      </div>
+
+      <div class="wishlist-empty" *ngIf="!wishlistItems.length">
+        <div class="wishlist-empty-title">No saved stories yet</div>
+        <div class="wishlist-empty-sub">Tap the heart on any story to add it here.</div>
+      </div>
+
+      <div class="wishlist-grid" *ngIf="wishlistItems.length">
+        <div class="wishlist-card" *ngFor="let item of wishlistItems" role="button" tabindex="0" (click)="openWishlistStory(item.id)">
+          <img class="wishlist-thumb" [src]="storyService.toAbsUrl(item.thumbnail) || 'assets/story.png'" alt="" />
+          <div class="wishlist-meta">
+            <div class="wishlist-cat">{{ item.category || 'Story' }}</div>
+            <div class="wishlist-name">{{ item.title }}</div>
+            <div class="wishlist-desc">{{ item.description || 'Saved story' }}</div>
+          </div>
+          <button type="button" class="wishlist-remove" (click)="removeWishlistItem(item, $event)" aria-label="Remove from wishlist">
+            <ion-icon name="close-outline"></ion-icon>
+          </button>
+        </div>
       </div>
     </div>
 

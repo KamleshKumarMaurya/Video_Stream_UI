@@ -1,12 +1,14 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.example.videostreaming',
-  appName: 'Video Streaming',
+  appId: 'com.storixa.app',
+  appName: 'Storixa',
   webDir: 'www',
   plugins: {
     StatusBar: {
-      overlaysWebView: false,
+      overlaysWebView: true,
+      style: 'DARK',
+      backgroundColor: '#00000000',
     },
   },
   server: {

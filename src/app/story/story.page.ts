@@ -1,6 +1,11 @@
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { ToastController } from '@ionic/angular';
 import { StoryService } from '../services/story.service';
+import { AdminService } from '../services/admin.service';
+import { WishlistService } from '../services/wishlist.service';
+import { DownloadProgressState, DownloadService } from '../services/download.service';
+import { firstValueFrom } from 'rxjs';
 import Hls from 'hls.js';
 
 @Component({
@@ -12,7 +17,11 @@ import Hls from 'hls.js';
 export class StoryPage implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private toastController = inject(ToastController);
   storyService = inject(StoryService);
+  private adminService = inject(AdminService);
+  private wishlistService = inject(WishlistService);
+  private downloadService = inject(DownloadService);
 
   story: any = null;
   episodes: any[] = [];
@@ -21,6 +30,7 @@ export class StoryPage implements OnInit, OnDestroy {
   currentEpisode: any = null;
 
   isPlaying = false;
+  isVideoLoading = false;
   currentTimeSec = 0;
   durationSec = 0;
   seeking = false;
@@ -28,14 +38,31 @@ export class StoryPage implements OnInit, OnDestroy {
 
   isLiked = false;
   isBookmarked = false;
+  isWishlisted = false;
   isFullscreen = false;
 
   autoplayOn = true;
-  playbackRate = 1.5;
-  readonly playbackRates = [1, 1.5, 2];
+  playbackRate = 1;
+  readonly playbackRates = [1, 1.25, 1.5, 2];
 
   activeBottomTab: 'home' | 'explore' | 'story' | 'library' | 'profile' = 'story';
   role: 'admin' | 'customer' = 'customer';
+
+  readonly freeEpisodeCount = 2;
+  subscriptionChecked = false;
+  subscriptionActive = false;
+  subscriptionExpiryMs: number | null = null;
+  isCheckingSubscription = false;
+  private lastSubscriptionCheckAtMs = 0;
+
+  lockOpen = false;
+  lockedEpisode: any | null = null;
+  lockedEpisodeIndex = -1;
+  downloadedEpisodeKeys = new Set<string>();
+  downloadingEpisodeKeys = new Set<string>();
+  downloadProgressByKey = new Map<string, DownloadProgressState>();
+  private activeLocalObjectUrl: string | null = null;
+  private pendingEpisodeKey: string | null = null;
 
   get isAdmin(): boolean {
     return this.role === 'admin';
@@ -60,6 +87,11 @@ export class StoryPage implements OnInit, OnDestroy {
 
     const id = this.route.snapshot.paramMap.get('id');
     if (!id) return;
+    this.pendingEpisodeKey =
+      this.route.snapshot.queryParamMap.get('episodeId') ||
+      this.route.snapshot.queryParamMap.get('episode') ||
+      this.route.snapshot.queryParamMap.get('ep') ||
+      null;
 
     this.episodes = [];
     this.currentEpisode = null;
@@ -67,6 +99,7 @@ export class StoryPage implements OnInit, OnDestroy {
 
     this.storyService.getStory(id).subscribe((res: any) => {
       this.story = res || null;
+      this.syncWishlistState();
     });
 
     this.storyService.getEpisodes(id).subscribe({
@@ -74,7 +107,12 @@ export class StoryPage implements OnInit, OnDestroy {
         this.episodes = res || [];
         this.episodesLoaded = true;
         if (this.episodes.length) {
-          this.playEpisode(this.episodes[0]);
+          const initialIndex = this.getInitialEpisodeIndex();
+          const targetIndex = initialIndex >= 0 ? initialIndex : 0;
+          const targetEpisode = this.episodes[targetIndex];
+          if (targetEpisode) {
+            void this.requestPlayEpisode(targetEpisode, targetIndex, 'init');
+          }
         }
       },
       error: () => {
@@ -82,14 +120,21 @@ export class StoryPage implements OnInit, OnDestroy {
         this.episodesLoaded = true;
       },
     });
+
+    void this.refreshSubscriptionFromBackend(true);
+  }
+
+  ionViewWillEnter(): void {
+    void this.refreshSubscriptionFromBackend(true);
+    this.syncWishlistState();
+    void this.refreshDownloadedState();
   }
 
   hls: Hls | null = null;
   availableQualities: Array<{ level: number; label: string; height?: number; bitrate?: number }> = [];
-  selectedQualityLevel: number = -1; // -1 = Auto in hls.js
+  selectedQualityLevel: number = -1;
   playingQuality: string = '';
   qualityPopoverOpen = false;
-  qualityPopoverEvent: Event | null = null;
 
   get qualityDisplayLabel(): string {
     if (!this.availableQualities.length) return '';
@@ -107,6 +152,10 @@ export class StoryPage implements OnInit, OnDestroy {
   onImgError(event: any) {
   event.target.src = 'assets/story.png';
 }
+
+  get wishlistButtonLabel(): string {
+    return this.isWishlisted ? 'Remove from wishlist' : 'Add to wishlist';
+  }
 
   get playbackRateLabel(): string {
     const v = String(this.playbackRate);
@@ -132,6 +181,26 @@ export class StoryPage implements OnInit, OnDestroy {
     return this.episodes || [];
   }
 
+  get isSubscribed(): boolean {
+    if (this.isAdmin) return true;
+    if (!this.subscriptionChecked) return false;
+    if (!this.subscriptionActive) return false;
+    if (this.subscriptionExpiryMs != null) return this.subscriptionExpiryMs > Date.now();
+    return true;
+  }
+
+  isEpisodeLockedByIndex(index: number): boolean {
+    if (this.isAdmin) return false;
+    if (index < 0) return false;
+    if (this.isSubscribed) return false;
+    return index >= this.freeEpisodeCount;
+  }
+
+  get lockedEpisodeLabel(): string {
+    const n = this.lockedEpisodeIndex >= 0 ? this.lockedEpisodeIndex + 1 : 0;
+    return String(n || 0).padStart(2, '0');
+  }
+
   getNextLabel(ep: any, index: number): string {
     const epNum = ep?.episodeNumber ?? ep?.episode ?? ep?.ep ?? (index + 1);
     const tag = this.getEpisodeIndex(ep) === this.getCurrentEpisodeIndex() + 1 ? 'NEXT • ' : '';
@@ -153,22 +222,132 @@ export class StoryPage implements OnInit, OnDestroy {
     return (this.episodes || []).findIndex(e => this.getEpisodeKey(e) === key);
   }
 
+  private getInitialEpisodeIndex(): number {
+    if (!this.pendingEpisodeKey) return -1;
+    return (this.episodes || []).findIndex(ep => this.getEpisodeKey(ep) === this.pendingEpisodeKey);
+  }
+
   getEpisodeDuration(ep: any, index: number): string {
-    if (ep?.duration) return String(ep.duration);
-    const sec = Number(ep?.durationSec ?? ep?.duration_sec);
-    if (Number.isFinite(sec) && sec > 0) return this.formatTime(sec);
-    const samples = ['42:10', '38:45', '45:00', '34:20', '12:45'];
-    return samples[index % samples.length];
+    const raw = ep?.duration ?? ep?.durationSec ?? ep?.duration_sec;
+
+    if (typeof raw === 'number' && Number.isFinite(raw) && raw > 0) {
+      return this.formatTime(raw);
+    }
+
+    if (typeof raw === 'string') {
+      const trimmed = raw.trim();
+      if (trimmed) {
+        const asNum = Number(trimmed);
+        if (Number.isFinite(asNum) && asNum > 0) return this.formatTime(asNum);
+
+        if (trimmed.includes(':')) {
+          const parts = trimmed.split(':').map(p => p.trim());
+          if (parts.length === 2) {
+            const mm = Number(parts[0]);
+            const ss = Number(parts[1]);
+            if (Number.isFinite(mm) && Number.isFinite(ss) && mm >= 0 && ss >= 0) {
+              return `${String(Math.floor(mm)).padStart(2, '0')}:${String(Math.floor(ss)).padStart(2, '0')}`;
+            }
+          }
+          if (parts.length === 3) {
+            const hh = Number(parts[0]);
+            const mm = Number(parts[1]);
+            const ss = Number(parts[2]);
+            if (Number.isFinite(hh) && Number.isFinite(mm) && Number.isFinite(ss) && hh >= 0 && mm >= 0 && ss >= 0) {
+              return `${String(Math.floor(hh))}:${String(Math.floor(mm)).padStart(2, '0')}:${String(Math.floor(ss)).padStart(2, '0')}`;
+            }
+          }
+
+          return trimmed;
+        }
+      }
+    }
+
+    return '00:00';
   }
 
   toThumb(item: any): string {
     return this.storyService.toAbsUrl(item?.thumbnail) || this.heroImageUrl;
   }
 
-  playEpisode(ep: any) {
-    if (!ep) return;
+  async onEpisodeTap(ep: any, index: number): Promise<void> {
+    await this.requestPlayEpisode(ep, index, 'user');
+  }
+
+  async downloadEpisode(ep: any, index: number, ev: Event): Promise<void> {
+    ev.stopPropagation();
+
+    if (this.isEpisodeLockedByIndex(index)) {
+      await this.showToast('Subscribe to download this episode.');
+      return;
+    }
+
+    const episodeKey = this.getEpisodeDownloadKey(ep);
+    if (!episodeKey) {
+      await this.showToast('Episode is not ready yet.');
+      return;
+    }
+
+    if (this.downloadedEpisodeKeys.has(episodeKey)) {
+      await this.showToast('Episode already downloaded.');
+      return;
+    }
+
+    if (this.downloadingEpisodeKeys.has(episodeKey)) return;
+
+    this.downloadingEpisodeKeys.add(episodeKey);
+    this.downloadProgressByKey.set(episodeKey, { phase: 'requesting', percent: 0 });
+    try {
+      const result = await this.downloadService.downloadEpisode(this.story, ep, (state) => {
+        this.downloadProgressByKey.set(episodeKey, state);
+      });
+      if (result.added && result.record) {
+        this.downloadedEpisodeKeys.add(result.record.episodeId);
+        this.downloadProgressByKey.set(episodeKey, { phase: 'done', percent: 100 });
+        await this.showToast('Episode downloaded.');
+      } else if (result.reason === 'exists') {
+        this.downloadedEpisodeKeys.add(episodeKey);
+        this.downloadProgressByKey.set(episodeKey, { phase: 'done', percent: 100 });
+        await this.showToast('Episode already downloaded.');
+      } else {
+        this.downloadProgressByKey.delete(episodeKey);
+        await this.showToast('Download failed.');
+      }
+    } catch {
+      this.downloadProgressByKey.delete(episodeKey);
+      await this.showToast('Download failed.');
+    } finally {
+      this.downloadingEpisodeKeys.delete(episodeKey);
+    }
+  }
+
+  private async requestPlayEpisode(ep: any, index: number, source: 'user' | 'autoplay' | 'init'): Promise<boolean> {
+    if (!ep) return false;
+
+    if (!this.isEpisodeLockedByIndex(index)) {
+      await this.startPlayback(ep);
+      return true;
+    }
+
+    await this.ensureFreshSubscriptionCheck();
+
+    if (!this.isEpisodeLockedByIndex(index)) {
+      await this.startPlayback(ep);
+      return true;
+    }
+
+    this.openLockedEpisode(ep, index);
+    if (source !== 'init') this.pauseVideo();
+    return false;
+  }
+
+  private async startPlayback(ep: any): Promise<void> {
+    this.lockOpen = false;
+    this.lockedEpisode = null;
+    this.lockedEpisodeIndex = -1;
+
     this.currentEpisode = ep;
-    this.play(ep.videoUrl);
+    await this.playCurrentEpisode(ep);
   }
 
   isEpisodeActive(ep: any): boolean {
@@ -180,7 +359,8 @@ export class StoryPage implements OnInit, OnDestroy {
 
   private getEpisodeKey(ep: any): string | number | null {
     if (!ep) return null;
-    return ep?.id ?? ep?.videoUrl ?? ep?.episodeNumber ?? null;
+    const key = ep?.id ?? ep?.videoUrl ?? ep?.episodeNumber ?? null;
+    return key == null || key === '' ? null : String(key);
   }
 
   private getCurrentEpisodeIndex(): number {
@@ -195,24 +375,22 @@ export class StoryPage implements OnInit, OnDestroy {
     return list.indexOf(this.currentEpisode);
   }
 
-  playNextEpisode(): boolean {
+  async playNextEpisode(): Promise<boolean> {
     const list = this.episodes || [];
     const idx = this.getCurrentEpisodeIndex();
     if (idx < 0) return false;
     const next = list[idx + 1];
     if (!next) return false;
-    this.playEpisode(next);
-    return true;
+    return this.requestPlayEpisode(next, idx + 1, 'autoplay');
   }
 
-  playPrevEpisode(): boolean {
+  async playPrevEpisode(): Promise<boolean> {
     const list = this.episodes || [];
     const idx = this.getCurrentEpisodeIndex();
     if (idx < 0) return false;
     const prev = list[idx - 1];
     if (!prev) return false;
-    this.playEpisode(prev);
-    return true;
+    return this.requestPlayEpisode(prev, idx - 1, 'user');
   }
 
   isEpisodeNew(ep: any): boolean {
@@ -236,7 +414,6 @@ export class StoryPage implements OnInit, OnDestroy {
     if (this.mediaEventsBound) return;
     this.mediaEventsBound = true;
 
-    // iOS Safari native fullscreen (webkitEnterFullscreen).
     video.addEventListener('webkitbeginfullscreen' as any, () => {
       this.isFullscreen = true;
       try {
@@ -266,6 +443,22 @@ export class StoryPage implements OnInit, OnDestroy {
       this.applyPlaybackRate(video);
     });
 
+    video.addEventListener('loadstart', () => {
+      this.isVideoLoading = true;
+    });
+
+    video.addEventListener('waiting', () => {
+      this.isVideoLoading = true;
+    });
+
+    video.addEventListener('stalled', () => {
+      this.isVideoLoading = true;
+    });
+
+    video.addEventListener('canplay', () => {
+      this.isVideoLoading = false;
+    });
+
     video.addEventListener('durationchange', () => {
       this.durationSec = Number.isFinite(video.duration) ? video.duration : 0;
     });
@@ -281,11 +474,21 @@ export class StoryPage implements OnInit, OnDestroy {
 
     video.addEventListener('pause', () => {
       this.isPlaying = false;
+      this.isVideoLoading = false;
     });
 
     video.addEventListener('ended', () => {
       this.isPlaying = false;
-      if (this.autoplayOn) this.playNextEpisode();
+      this.isVideoLoading = false;
+      if (this.autoplayOn) void this.playNextEpisode();
+    });
+
+    video.addEventListener('playing', () => {
+      this.isVideoLoading = false;
+    });
+
+    video.addEventListener('error', () => {
+      this.isVideoLoading = false;
     });
   }
 
@@ -293,7 +496,6 @@ export class StoryPage implements OnInit, OnDestroy {
     if (this.fullscreenHandlerBound) return;
     this.fullscreenHandlerBound = true;
     document.addEventListener('fullscreenchange', this.onFullscreenChangeBound);
-    // iOS Safari / older WebKit
     document.addEventListener('webkitfullscreenchange' as any, this.onFullscreenChangeBound);
   }
 
@@ -304,7 +506,6 @@ export class StoryPage implements OnInit, OnDestroy {
     const video = this.getVideoEl();
     if (video) {
       try {
-        // In fullscreen we rely on native controls; custom overlay is hidden in the template.
         video.controls = this.isFullscreen;
       } catch {
         /* ignore */
@@ -312,7 +513,6 @@ export class StoryPage implements OnInit, OnDestroy {
     }
 
     if (this.isFullscreen) {
-      // Many browsers only allow orientation lock after fullscreen is active.
       void this.lockLandscape();
       return;
     }
@@ -327,7 +527,6 @@ export class StoryPage implements OnInit, OnDestroy {
       const o: any = screen.orientation as any;
       if (o?.lock) await o.lock('landscape');
     } catch (e) {
-      // Orientation lock may fail (permissions/unsupported); ignore.
     }
   }
 
@@ -343,6 +542,16 @@ export class StoryPage implements OnInit, OnDestroy {
     if (!video) return;
     if (video.paused) video.play().catch(() => { });
     else video.pause();
+  }
+
+  private pauseVideo(): void {
+    const video = this.getVideoEl();
+    if (!video) return;
+    try {
+      video.pause();
+    } catch {
+      /* ignore */
+    }
   }
 
   cyclePlaybackRate() {
@@ -377,8 +586,6 @@ export class StoryPage implements OnInit, OnDestroy {
       this.router.navigateByUrl('/users');
       return;
     }
-    // eslint-disable-next-line no-console
-    console.log('Bottom tab tapped:', tab);
   }
 
   async toggleFullscreen(ev?: Event) {
@@ -391,7 +598,6 @@ export class StoryPage implements OnInit, OnDestroy {
     const d: any = document as any;
     const currentFsEl = document.fullscreenElement || d.webkitFullscreenElement;
 
-    // If already fullscreen, exit.
     if (currentFsEl) {
       try {
         if (document.exitFullscreen) await document.exitFullscreen();
@@ -400,21 +606,16 @@ export class StoryPage implements OnInit, OnDestroy {
       return;
     }
 
-    // Enter fullscreen (best effort across browsers).
     try {
       const anyVideo: any = video as any;
       const target: any = hero || video;
 
-      // Prefer document fullscreen on the hero wrapper so we can apply rotation styles.
       if (target?.requestFullscreen) await target.requestFullscreen();
       else if (target?.webkitRequestFullscreen) target.webkitRequestFullscreen();
       else if (anyVideo.webkitEnterFullscreen) {
-        // iOS native video fullscreen
         anyVideo.webkitEnterFullscreen();
       }
     } catch (e) { /* ignore */ }
-
-    // Orientation lock is attempted again on `fullscreenchange`.
   }
 
   seekBy(deltaSeconds: number) {
@@ -427,7 +628,7 @@ export class StoryPage implements OnInit, OnDestroy {
 
   onHeroPointerUp(ev: PointerEvent) {
     if (!this.isPlaying) return;
-    if (ev.button != null && ev.button !== 0) return; // only primary
+    if (ev.button != null && ev.button !== 0) return;
 
     const target = ev.target as HTMLElement | null;
     if (target?.closest?.('.sp-fs-btn, .sp-hero-play')) return;
@@ -487,40 +688,43 @@ export class StoryPage implements OnInit, OnDestroy {
   }
 
   share() {
-    // TODO: wire Capacitor Share plugin
-    console.log('Share tapped', this.story?.title || this.currentEpisode?.title);
   }
 
-  play(url: any) {
-
+  private async playCurrentEpisode(ep: any): Promise<void> {
     this.bindFullscreenEvents();
-
-    this.activeVideo = this.storyService.toAbsUrl(url) || url;
-    if (!this.activeVideo) return;
 
     const video = this.getVideoEl();
     if (!video) return;
     this.bindMediaEvents(video);
     this.applyPlaybackRate(video);
 
-    // Reset prior playback state to avoid event leaks when switching episodes.
-    if (this.hls) {
-      this.hls.destroy();
-      this.hls = null;
-    }
+    await this.stopCurrentPlayback();
+
     this.availableQualities = [];
     this.selectedQualityLevel = -1;
     this.playingQuality = '';
+    this.qualityPopoverOpen = false;
 
-    // Reset timeline
     this.currentTimeSec = 0;
     this.durationSec = 0;
-
-    // Hide native controls (we use custom UI)
+    this.isVideoLoading = true;
     video.controls = false;
 
-    if (Hls.isSupported()) {
+    const localRecord = await this.downloadService.getByEpisodeKey(this.getEpisodeDownloadKey(ep) ?? '');
+    if (localRecord?.blob) {
+      this.activeLocalObjectUrl = URL.createObjectURL(localRecord.blob);
+      this.activeVideo = this.activeLocalObjectUrl;
+      video.src = this.activeLocalObjectUrl;
+      video.load();
+      video.play().catch(() => { });
+      return;
+    }
 
+    const remoteUrl = this.storyService.toAbsUrl(ep?.videoUrl) || ep?.videoUrl;
+    this.activeVideo = remoteUrl;
+    if (!this.activeVideo) return;
+
+    if (Hls.isSupported()) {
       this.hls = new Hls({
         startLevel: -1,
 
@@ -533,13 +737,156 @@ export class StoryPage implements OnInit, OnDestroy {
       this.hls.attachMedia(video);
 
       this.hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        this.buildAvailableQualities();
+        this.updatePlayingQuality();
         video.play().catch(() => { });
       });
 
+      this.hls.on(Hls.Events.LEVEL_SWITCHED, (_event, data: any) => {
+        const levelIndex = Number(data?.level);
+        this.updatePlayingQuality(Number.isFinite(levelIndex) ? levelIndex : this.hls?.currentLevel ?? -1);
+      });
+
+      this.hls.on(Hls.Events.ERROR, () => {
+        this.isVideoLoading = false;
+      });
+
+      video.play().catch(() => { });
+      return;
     }
 
-    // Autoplay (best-effort)
+    video.src = this.activeVideo;
+    video.load();
     video.play().catch(() => { });
+  }
+
+  private async stopCurrentPlayback(): Promise<void> {
+    const video = this.getVideoEl();
+    if (video) {
+      try {
+        video.pause();
+        video.removeAttribute('src');
+        video.load();
+      } catch {
+        /* ignore */
+      }
+    }
+
+    if (this.hls) {
+      this.hls.destroy();
+      this.hls = null;
+    }
+
+    if (this.activeLocalObjectUrl) {
+      try {
+        URL.revokeObjectURL(this.activeLocalObjectUrl);
+      } catch {
+        /* ignore */
+      }
+      this.activeLocalObjectUrl = null;
+    }
+  }
+
+  private openLockedEpisode(ep: any, index: number): void {
+    this.lockedEpisode = ep;
+    this.lockedEpisodeIndex = index;
+    this.lockOpen = true;
+  }
+
+  closeLock(): void {
+    this.lockOpen = false;
+  }
+
+  goToSubscription(): void {
+    this.lockOpen = false;
+    this.router.navigateByUrl('/subscription');
+  }
+
+  private async ensureFreshSubscriptionCheck(): Promise<void> {
+    if (this.isAdmin) return;
+    const now = Date.now();
+    if (this.isCheckingSubscription) return;
+    if (this.subscriptionChecked && (now - this.lastSubscriptionCheckAtMs) < 10_000) return;
+    await this.refreshSubscriptionFromBackend(true);
+  }
+
+  private async refreshSubscriptionFromBackend(force: boolean): Promise<void> {
+    if (this.isAdmin) {
+      this.subscriptionChecked = true;
+      this.subscriptionActive = true;
+      this.subscriptionExpiryMs = null;
+      return;
+    }
+
+    if (this.isCheckingSubscription) return;
+    if (!force && this.subscriptionChecked) return;
+
+    const userId = this.getUserIdFromStorage();
+    if (userId == null) {
+      this.subscriptionChecked = true;
+      this.subscriptionActive = false;
+      this.subscriptionExpiryMs = null;
+      return;
+    }
+
+    this.isCheckingSubscription = true;
+    try {
+      const res: any = await firstValueFrom(this.adminService.getCustomer(userId));
+      const active = !!res?.subscriptionActive;
+      const expiryMs = this.parseExpiryMs(res?.subscriptionExpiryDate ?? res?.subscriptionExpiry ?? res?.subscriptionExpiryMs);
+      this.subscriptionActive = active;
+      this.subscriptionExpiryMs = expiryMs;
+      this.subscriptionChecked = true;
+      this.lastSubscriptionCheckAtMs = Date.now();
+
+      try {
+        localStorage.setItem('vs_subscription_backend_active', active ? '1' : '0');
+        if (expiryMs != null) localStorage.setItem('vs_subscription_backend_expiry_ms', String(expiryMs));
+        else localStorage.removeItem('vs_subscription_backend_expiry_ms');
+      } catch {
+        /* ignore */
+      }
+    } catch {
+      this.subscriptionChecked = true;
+      this.subscriptionActive = false;
+      this.subscriptionExpiryMs = null;
+      this.lastSubscriptionCheckAtMs = Date.now();
+    } finally {
+      this.isCheckingSubscription = false;
+    }
+  }
+
+  private async refreshDownloadedState(): Promise<void> {
+    if (this.isAdmin) {
+      this.downloadedEpisodeKeys = new Set();
+      return;
+    }
+
+    try {
+      const items = await this.downloadService.listDownloadsForCurrentUser();
+      this.downloadedEpisodeKeys = new Set(items.map(item => item.episodeId));
+    } catch {
+      this.downloadedEpisodeKeys = new Set();
+    }
+  }
+
+  private getUserIdFromStorage(): number | null {
+    try {
+      const idStr = localStorage.getItem('vs_user_id');
+      const id = idStr ? Number(idStr) : NaN;
+      return Number.isFinite(id) ? id : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private parseExpiryMs(value: any): number | null {
+    if (value == null) return null;
+    const num = Number(value);
+    if (Number.isFinite(num) && num > 0) return num;
+    const parsed = Date.parse(String(value));
+    if (Number.isFinite(parsed) && !Number.isNaN(parsed)) return parsed;
+    return null;
   }
 
   private applyPlaybackRate(video: HTMLVideoElement) {
@@ -552,8 +899,44 @@ export class StoryPage implements OnInit, OnDestroy {
 
   openQuality(ev: Event) {
     if (!this.availableQualities.length) return;
-    this.qualityPopoverEvent = ev;
     this.qualityPopoverOpen = true;
+  }
+
+  async toggleWishlist(ev?: Event): Promise<void> {
+    ev?.stopPropagation();
+    if (this.isAdmin) return;
+
+    if (!this.story?.id) {
+      await this.showToast('Story is not ready yet.');
+      return;
+    }
+
+    if (this.isWishlisted) {
+      const removed = this.wishlistService.removeStory(this.story.id);
+      this.isWishlisted = !removed ? this.isWishlisted : false;
+      await this.showToast(removed ? 'Removed from wishlist.' : 'Already removed.');
+      return;
+    }
+
+    const result = this.wishlistService.addStory(this.story);
+    if (result.added) {
+      this.isWishlisted = true;
+      await this.showToast('Added to wishlist.');
+      return;
+    }
+
+    if (result.reason === 'limit') {
+      await this.showToast('Wishlist can hold only 10 stories.');
+      return;
+    }
+
+    if (result.reason === 'exists') {
+      this.isWishlisted = true;
+      await this.showToast('Already in wishlist.');
+      return;
+    }
+
+    await this.showToast('Could not update wishlist.');
   }
 
   changeQuality(ev: any) {
@@ -563,7 +946,140 @@ export class StoryPage implements OnInit, OnDestroy {
 
     this.selectedQualityLevel = nextLevel;
     this.hls.currentLevel = nextLevel;
+    if (nextLevel >= 0) {
+      this.updatePlayingQuality(nextLevel);
+    }
     this.qualityPopoverOpen = false;
+  }
+
+  private buildAvailableQualities(): void {
+    const hls = this.hls;
+    if (!hls || !Array.isArray(hls.levels) || !hls.levels.length) {
+      this.availableQualities = [];
+      return;
+    }
+
+    const levels = hls.levels
+      .map((level, index) => ({
+        level: index,
+        label: this.getQualityLevelLabel(level, index),
+        height: level?.height,
+        bitrate: level?.bitrate,
+      }))
+      .filter((item, index, list) => list.findIndex(q => q.level === item.level) === index)
+      .sort((a, b) => {
+        const aHeight = Number(a.height ?? 0);
+        const bHeight = Number(b.height ?? 0);
+        if (bHeight !== aHeight) return bHeight - aHeight;
+        const aBitrate = Number(a.bitrate ?? 0);
+        const bBitrate = Number(b.bitrate ?? 0);
+        return bBitrate - aBitrate;
+      });
+
+    this.availableQualities = [
+      { level: -1, label: 'Auto' },
+      ...levels,
+    ];
+  }
+
+  private updatePlayingQuality(levelIndex?: number): void {
+    const hls = this.hls;
+    if (!hls || !Array.isArray(hls.levels) || !hls.levels.length) {
+      this.playingQuality = '';
+      return;
+    }
+
+    const nextLevelIndex = Number.isFinite(levelIndex as number) ? Number(levelIndex) : hls.currentLevel;
+    if (nextLevelIndex == null || nextLevelIndex < 0) return;
+    const level = hls.levels[nextLevelIndex];
+    if (!level) return;
+    this.playingQuality = this.getQualityLevelLabel(level, nextLevelIndex);
+  }
+
+  private getQualityLevelLabel(level: any, index: number): string {
+    const height = Number(level?.height);
+    if (Number.isFinite(height) && height > 0) return `${Math.round(height)}p`;
+
+    const bitrate = Number(level?.bitrate);
+    if (Number.isFinite(bitrate) && bitrate > 0) {
+      const mbps = bitrate / 1_000_000;
+      if (mbps >= 1) return `${mbps.toFixed(mbps >= 10 ? 0 : 1)} Mbps`;
+      return `${Math.round(bitrate / 1000)} Kbps`;
+    }
+
+    return `Level ${index + 1}`;
+  }
+
+  private syncWishlistState(): void {
+    if (this.isAdmin || !this.story?.id) {
+      this.isWishlisted = false;
+      return;
+    }
+
+    this.isWishlisted = this.wishlistService.hasStory(this.story.id);
+  }
+
+  private getEpisodeDownloadKey(ep: any): string | null {
+    const key = ep?.id ?? ep?.episodeId ?? ep?.episodeNumber ?? ep?.episode ?? ep?.ep ?? ep?.videoUrl ?? null;
+    return key == null || key === '' ? null : String(key);
+  }
+
+  isDownloadedEpisode(ep: any): boolean {
+    const key = this.getEpisodeDownloadKey(ep);
+    return !!key && this.downloadedEpisodeKeys.has(key);
+  }
+
+  isDownloadingEpisode(ep: any): boolean {
+    const key = this.getEpisodeDownloadKey(ep);
+    return !!key && this.downloadingEpisodeKeys.has(key);
+  }
+
+  getDownloadProgress(ep: any): number {
+    const key = this.getEpisodeDownloadKey(ep);
+    if (!key) return 0;
+    return this.downloadProgressByKey.get(key)?.percent ?? 0;
+  }
+
+  getDownloadButtonLabel(ep: any): string {
+    const key = this.getEpisodeDownloadKey(ep);
+    if (!key) return 'DL';
+
+    const state = this.downloadProgressByKey.get(key);
+    if (this.downloadedEpisodeKeys.has(key) || state?.phase === 'done') {
+      return '100%';
+    }
+
+    if (state?.phase === 'requesting') {
+      return '0%';
+    }
+
+    if (state?.phase === 'downloading' || state?.phase === 'saving') {
+      return `${Math.max(0, Math.min(100, Math.round(state.percent)))}%`;
+    }
+
+    return 'DL';
+  }
+
+  isDownloadRequesting(ep: any): boolean {
+    const key = this.getEpisodeDownloadKey(ep);
+    if (!key) return false;
+    return this.downloadProgressByKey.get(key)?.phase === 'requesting';
+  }
+
+  isDownloadBusy(ep: any): boolean {
+    const key = this.getEpisodeDownloadKey(ep);
+    if (!key) return false;
+    const state = this.downloadProgressByKey.get(key);
+    return !!state && state.phase !== 'done';
+  }
+
+  private async showToast(message: string): Promise<void> {
+    const toast = await this.toastController.create({
+      message,
+      duration: 1800,
+      position: 'bottom',
+    });
+    await toast.present();
   }
 
   ngOnDestroy(): void {
@@ -580,6 +1096,15 @@ export class StoryPage implements OnInit, OnDestroy {
     if (this.hls) {
       this.hls.destroy();
       this.hls = null;
+    }
+
+    if (this.activeLocalObjectUrl) {
+      try {
+        URL.revokeObjectURL(this.activeLocalObjectUrl);
+      } catch {
+        /* ignore */
+      }
+      this.activeLocalObjectUrl = null;
     }
   }
 

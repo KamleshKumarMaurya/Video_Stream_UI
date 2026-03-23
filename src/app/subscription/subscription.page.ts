@@ -1,7 +1,11 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { ToastController } from '@ionic/angular';
+import { LoadingController, ToastController } from '@ionic/angular';
+import { firstValueFrom } from 'rxjs';
 import { Plan, PlanService } from '../services/plan.service';
+import { AdminService } from '../services/admin.service';
+import { PaymentService } from '../services/payment.service';
+import { RazorpayService } from '../services/razorpay.service';
 
 type UserRole = 'admin' | 'customer';
 
@@ -14,18 +18,28 @@ type UserRole = 'admin' | 'customer';
 export class SubscriptionPage implements OnInit {
   private router = inject(Router);
   private planService = inject(PlanService);
+  private adminService = inject(AdminService);
+  private paymentService = inject(PaymentService);
+  private razorpayService = inject(RazorpayService);
   private toastController = inject(ToastController);
+  private loadingController = inject(LoadingController);
 
   role: UserRole = 'customer';
   activeBottomTab: 'home' | 'explore' | 'create' | 'library' | 'profile' = 'profile';
 
   trialDays = 7;
-  trialStartedAtMs: number | null = null;
-  paidUntilMs: number | null = null;
+
+  subscriptionBackendActive = false;
+  subscriptionBackendExpiryMs: number | null = null;
+  trialPlanUsed: boolean | null = null;
+  isCheckingSubscriptionState = false;
 
   plans: Plan[] = [];
   isLoadingPlans = false;
   selectedPlanId: number | null = null;
+
+  isProcessingPayment = false;
+  razorpayError: string | null = null;
 
   get isAdmin(): boolean {
     return this.role === 'admin';
@@ -36,38 +50,50 @@ export class SubscriptionPage implements OnInit {
     return this.plans.find(p => p.id === this.selectedPlanId) || null;
   }
 
-  get isTrialActive(): boolean {
-    if (!this.trialStartedAtMs) return false;
-    return Date.now() < this.trialStartedAtMs + this.trialDays * 24 * 60 * 60 * 1000;
+  get isSubscriptionActive(): boolean {
+    if (this.isAdmin) return true;
+    if (this.subscriptionBackendExpiryMs != null) return this.subscriptionBackendExpiryMs > Date.now();
+    return this.subscriptionBackendActive === true;
   }
 
-  get isPaidActive(): boolean {
-    if (!this.paidUntilMs) return false;
-    return Date.now() < this.paidUntilMs;
+  get canStartTrial(): boolean {
+    const plan = this.selectedPlan;
+    if (!plan || plan.trialAvailable !== true) return false;
+    if (this.trialPlanUsed === true) return false;
+    if (this.trialPlanUsed == null) return false;
+    return true;
+  }
+
+  canUseTrial(plan: Plan | null | undefined): boolean {
+    if (!plan || plan.trialAvailable !== true) return false;
+    if (this.trialPlanUsed === true) return false;
+    if (this.trialPlanUsed == null) return false;
+    return true;
   }
 
   get primaryCtaLabel(): string {
     if (this.isAdmin) return 'Premium Active';
+    if (this.isSubscriptionActive) return 'Premium Active';
+    if (this.isProcessingPayment) return 'Processing...';
     if (this.isLoadingPlans) return 'Loading plans...';
     if (!this.selectedPlan) return 'Select a plan';
 
     const plan = this.selectedPlan;
     const trialAvailable = plan.trialAvailable === true;
 
-    if (!this.trialStartedAtMs && trialAvailable) {
+    if (trialAvailable && this.canUseTrial(plan)) {
       const trialDays = plan.trialDurationDays || this.trialDays;
       const trialPrice = plan.trialPrice != null ? `₹${plan.trialPrice}` : 'Free';
       return `Start ${trialDays}-Day Trial (${trialPrice})`;
     }
-
-    if (this.isTrialActive) return `Trial Active (${this.daysLeftInTrial()}d left)`;
 
     return `Subscribe - ₹${this.formatMoney(plan.price)}`;
   }
 
   get isPrimaryCtaDisabled(): boolean {
     if (this.isAdmin) return true;
-    if (this.isTrialActive) return true;
+    if (this.isSubscriptionActive) return true;
+    if (this.isProcessingPayment) return true;
     if (this.isLoadingPlans) return true;
     if (!this.selectedPlan) return true;
     return false;
@@ -87,32 +113,91 @@ export class SubscriptionPage implements OnInit {
     try {
       const role = localStorage.getItem('vs_role');
       if (role === 'admin' || role === 'customer') this.role = role;
-
-      const trialDays = localStorage.getItem('vs_subscription_trial_days');
-      const trialDaysNum = trialDays ? Number(trialDays) : NaN;
-      if (Number.isFinite(trialDaysNum) && trialDaysNum > 0) this.trialDays = trialDaysNum;
-
-      const trial = localStorage.getItem('vs_subscription_trial_started_at');
-      this.trialStartedAtMs = trial ? Number(trial) : null;
-      if (this.trialStartedAtMs != null && !Number.isFinite(this.trialStartedAtMs)) this.trialStartedAtMs = null;
-
-      const paidUntil = localStorage.getItem('vs_subscription_paid_until');
-      this.paidUntilMs = paidUntil ? Number(paidUntil) : null;
-      if (this.paidUntilMs != null && !Number.isFinite(this.paidUntilMs)) this.paidUntilMs = null;
-
-      const plan = localStorage.getItem('vs_subscription_plan_months');
-      const planNum = plan ? Number(plan) : NaN;
-
-      const planId = localStorage.getItem('vs_subscription_plan_id');
-      const planIdNum = planId ? Number(planId) : NaN;
-      if (Number.isFinite(planIdNum)) this.selectedPlanId = planIdNum;
-
-      // Backward compatibility: if only months stored, we will map after plans load.
-      if (planNum === 3 || planNum === 6 || planNum === 12) {
-        // no-op here; mapping happens once plans are fetched
-      }
     } catch {
       /* ignore */
+    }
+
+    this.readBackendSubscriptionState();
+    this.clearLegacySubscriptionKeys();
+    void this.refreshSubscriptionStateFromBackend();
+  }
+
+  private readBackendSubscriptionState(): void {
+    try {
+      const active = localStorage.getItem('vs_subscription_backend_active');
+      this.subscriptionBackendActive = active === '1' || active === 'true';
+
+      const expiryStr = localStorage.getItem('vs_subscription_backend_expiry_ms');
+      const expiryNum = expiryStr ? Number(expiryStr) : NaN;
+      this.subscriptionBackendExpiryMs = Number.isFinite(expiryNum) && expiryNum > 0 ? expiryNum : null;
+    } catch {
+      this.subscriptionBackendActive = false;
+      this.subscriptionBackendExpiryMs = null;
+    }
+  }
+
+  private async refreshSubscriptionStateFromBackend(): Promise<void> {
+    if (this.isAdmin) return;
+    if (this.isCheckingSubscriptionState) return;
+
+    const userId = this.getUserIdFromStorage();
+    if (userId == null) return;
+
+    this.isCheckingSubscriptionState = true;
+    try {
+      const res: any = await firstValueFrom(this.adminService.getCustomer(userId));
+
+      const active = !!res?.subscriptionActive;
+      const expiryMs = this.parseExpiryMs(res?.subscriptionExpiryDate ?? res?.subscriptionExpiry ?? res?.subscriptionExpiryMs);
+      this.subscriptionBackendActive = active;
+      this.subscriptionBackendExpiryMs = expiryMs;
+
+      const trialUsed = this.pickFirstBoolean(
+        res?.isTrialPlanUsed,
+        res?.trialPlanUsed,
+        res?.trialUsed,
+        res?.isTrialUsed,
+        res?.trialConsumed,
+        res?.isTrialConsumed,
+      );
+      this.trialPlanUsed = typeof trialUsed === 'boolean' ? trialUsed : false;
+
+      try {
+        localStorage.setItem('vs_subscription_backend_active', active ? '1' : '0');
+        if (expiryMs != null) localStorage.setItem('vs_subscription_backend_expiry_ms', String(expiryMs));
+        else localStorage.removeItem('vs_subscription_backend_expiry_ms');
+      } catch {
+        /* ignore */
+      }
+    } catch {
+      this.trialPlanUsed = true;
+    } finally {
+      this.isCheckingSubscriptionState = false;
+    }
+  }
+
+  private clearLegacySubscriptionKeys(): void {
+    try {
+      localStorage.removeItem('vs_subscription_active');
+      localStorage.removeItem('vs_subscription_trial_started_at');
+      localStorage.removeItem('vs_subscription_trial_days');
+      localStorage.removeItem('vs_subscription_paid_until');
+      localStorage.removeItem('vs_subscription_plan_months');
+      localStorage.removeItem('vs_subscription_plan_id');
+      localStorage.removeItem('vs_subscription_plan_name');
+      localStorage.removeItem('vs_subscription_plan_days');
+    } catch {
+      /* ignore */
+    }
+  }
+
+  private getUserIdFromStorage(): number | null {
+    try {
+      const idStr = localStorage.getItem('vs_user_id');
+      const id = idStr ? Number(idStr) : NaN;
+      return Number.isFinite(id) ? id : null;
+    } catch {
+      return null;
     }
   }
 
@@ -128,8 +213,6 @@ export class SubscriptionPage implements OnInit {
         this.ensureSelectedPlan();
       },
       error: async (err) => {
-        // eslint-disable-next-line no-console
-        console.error('Failed to load plans', err);
         this.plans = [];
         this.isLoadingPlans = false;
         await this.presentToast('Failed to load subscription plans.', 'danger');
@@ -139,30 +222,10 @@ export class SubscriptionPage implements OnInit {
 
   private ensureSelectedPlan(): void {
     if (this.selectedPlanId && this.selectedPlan) return;
-
-    // Try mapping old `vs_subscription_plan_months` -> durationDays
-    let desiredDays: number | null = null;
-    try {
-      const planMonths = Number(localStorage.getItem('vs_subscription_plan_months'));
-      if (planMonths === 3) desiredDays = 90;
-      if (planMonths === 6) desiredDays = 180;
-      if (planMonths === 12) desiredDays = 365;
-    } catch {
-      /* ignore */
-    }
-
-    const byDays = desiredDays != null ? this.plans.find(p => Number(p.durationDays) === desiredDays) : null;
     const best = this.pickBestPlan(this.plans);
-    const selected = byDays || best || this.plans[0] || null;
+    const selected = best || this.plans[0] || null;
 
     this.selectedPlanId = selected?.id ?? null;
-    if (this.selectedPlanId != null) {
-      try {
-        localStorage.setItem('vs_subscription_plan_id', String(this.selectedPlanId));
-      } catch {
-        /* ignore */
-      }
-    }
   }
 
   private pickBestPlan(plans: Plan[]): Plan | null {
@@ -172,62 +235,110 @@ export class SubscriptionPage implements OnInit {
 
   onPrimaryCta(): void {
     if (this.isAdmin) return;
+    if (this.isSubscriptionActive) return;
     if (!this.selectedPlan) return;
 
     const plan = this.selectedPlan;
-    const trialAvailable = plan.trialAvailable === true;
-
-    if (!this.trialStartedAtMs && trialAvailable) {
-      const now = Date.now();
-      this.trialStartedAtMs = now;
-      this.trialDays = Number(plan.trialDurationDays) > 0 ? Number(plan.trialDurationDays) : this.trialDays;
-      try {
-        localStorage.setItem('vs_subscription_trial_started_at', String(now));
-        localStorage.setItem('vs_subscription_trial_days', String(this.trialDays));
-        localStorage.setItem('vs_subscription_active', '1');
-        localStorage.setItem('vs_subscription_plan_id', String(plan.id));
-        localStorage.setItem('vs_subscription_plan_name', String(plan.name));
-      } catch {
-        /* ignore */
-      }
-      this.router.navigateByUrl('/profile', { replaceUrl: true });
+    if (this.canUseTrial(plan)) {
+      void this.buySubscription(plan.id, plan.trialPrice, true);
       return;
     }
 
-    if (!this.isTrialActive) {
-      this.subscribeNow();
-    }
+    void this.buySubscription(plan.id, plan.price, false);
   }
 
   selectPlan(plan: Plan): void {
+    if (this.isProcessingPayment) return;
     this.selectedPlanId = plan?.id ?? null;
+    this.razorpayError = null;
+  }
+
+  private async buySubscription(planId: number, amount: any, useTrial: boolean): Promise<void> {
+    if (this.isProcessingPayment) return;
+
+    this.isProcessingPayment = true;
+    this.razorpayError = null;
+    const initLoading = await this.loadingController.create({ message: 'Initializing...' });
+    await initLoading.present();
+
+    let initDismissed = false;
     try {
-      if (this.selectedPlanId != null) localStorage.setItem('vs_subscription_plan_id', String(this.selectedPlanId));
-    } catch {
-      /* ignore */
+      const initRes = await firstValueFrom(this.paymentService.initiateSubscription(planId, useTrial));
+      const orderId = String(initRes?.message || '').trim();
+      if (!orderId) throw new Error('Failed to start subscription.');
+
+      await initLoading.dismiss();
+      initDismissed = true;
+
+      const plan = this.plans.find(p => p.id === planId) || null;
+      const description = useTrial ? '7-Day Trial' : (plan?.name || 'Subscription');
+      const response = await this.razorpayService.openCheckout({
+        orderId,
+        currency: 'INR',
+        name: 'VideoStory',
+        description,
+        amount: Number(amount) * 100 || 0,
+        themeColor: '#0C001C',
+        prefill: this.getRazorpayPrefill(),
+        notes: {
+          planId: String(planId),
+          trial: useTrial ? '1' : '0',
+        },
+      });
+
+      const verifyLoading = await this.loadingController.create({ message: 'Verifying...' });
+      await verifyLoading.present();
+      try {
+        const captureRes: any = await firstValueFrom(
+          this.paymentService.verifyPaymnent({
+            orderId,
+            ...response,
+            trial: useTrial,
+          }),
+        );
+        if (captureRes?.status !== "200") {
+          const msg = captureRes?.message ? String(captureRes.message) : 'Payment verification failed.';
+          throw new Error(msg);
+        }
+        await this.presentToast(captureRes?.message ? captureRes.message : 'Subscription Activated Successfully!', 'success');
+        if (captureRes.data) {
+          this.activateBackendFromApiResponse(captureRes?.data);
+          this.router.navigateByUrl('/home', { replaceUrl: true });
+        }
+      } finally {
+        await verifyLoading.dismiss();
+      }
+    } catch (e: any) {
+      const msg = e?.message ? String(e.message) : 'Payment cancelled.';
+      if (msg !== 'Checkout closed.') {
+        this.razorpayError = msg;
+        await this.presentToast(msg, 'danger');
+      }
+    } finally {
+      this.isProcessingPayment = false;
+      if (!initDismissed) {
+        try {
+          await initLoading.dismiss();
+        } catch {
+          /* ignore */
+        }
+      }
     }
   }
 
-  subscribeNow(): void {
-    if (this.isAdmin) return;
-    const plan = this.selectedPlan;
-    if (!plan) return;
-    const now = Date.now();
-    const paidUntil = now + Number(plan.durationDays) * 24 * 60 * 60 * 1000;
-    this.paidUntilMs = paidUntil;
+  private activateBackendFromApiResponse(apiRes: any): void {
+    this.subscriptionBackendActive = apiRes.subscriptionActive === true;
+    this.subscriptionBackendExpiryMs = apiRes.subscriptionExpiry != null ? new Date(apiRes.subscriptionExpiry).getTime() : null;
     try {
-      localStorage.setItem('vs_subscription_paid_until', String(paidUntil));
-      localStorage.setItem('vs_subscription_active', '1');
-      localStorage.setItem('vs_subscription_plan_id', String(plan.id));
-      localStorage.setItem('vs_subscription_plan_name', String(plan.name));
-      localStorage.setItem('vs_subscription_plan_days', String(plan.durationDays));
-
-      const months = this.monthsFromDurationDays(plan.durationDays);
-      if (months) localStorage.setItem('vs_subscription_plan_months', String(months));
+      localStorage.setItem('vs_subscription_backend_active',this.subscriptionBackendActive ? '1' : '0');
+      if (this.subscriptionBackendExpiryMs != null) {
+        localStorage.setItem('vs_subscription_backend_expiry_ms',String(this.subscriptionBackendExpiryMs));
+      } else {
+        localStorage.removeItem('vs_subscription_backend_expiry_ms');
+      }
     } catch {
       /* ignore */
     }
-    this.router.navigateByUrl('/profile', { replaceUrl: true });
   }
 
   isBestPlan(plan: Plan): boolean {
@@ -235,19 +346,37 @@ export class SubscriptionPage implements OnInit {
     return !!best && best.id === plan?.id;
   }
 
-  private monthsFromDurationDays(days: number): 3 | 6 | 12 | null {
-    const d = Number(days);
-    if (d === 90) return 3;
-    if (d === 180) return 6;
-    if (d === 365) return 12;
+  private pickFirstBoolean(...values: any[]): boolean | null {
+    for (const v of values) {
+      if (typeof v === 'boolean') return v;
+    }
     return null;
   }
 
-  daysLeftInTrial(): number {
-    if (!this.trialStartedAtMs) return 0;
-    const end = this.trialStartedAtMs + this.trialDays * 24 * 60 * 60 * 1000;
-    const leftMs = Math.max(0, end - Date.now());
-    return Math.max(0, Math.ceil(leftMs / (24 * 60 * 60 * 1000)));
+  private parseExpiryMs(value: any): number | null {
+    if (value == null) return null;
+    const num = Number(value);
+    if (Number.isFinite(num) && num > 0) return num;
+    const parsed = Date.parse(String(value));
+    if (Number.isFinite(parsed) && !Number.isNaN(parsed)) return parsed;
+    return null;
+  }
+
+  private getRazorpayPrefill(): { name?: string; email?: string; contact?: string } | undefined {
+    try {
+      const name = (localStorage.getItem('vs_display_name') || '').trim();
+      const email = (localStorage.getItem('vs_email') || '').trim();
+      const contact = (localStorage.getItem('vs_phone') || '').trim();
+
+      const prefill: any = {};
+      if (name) prefill.name = name;
+      if (email) prefill.email = email;
+      if (contact) prefill.contact = contact;
+
+      return Object.keys(prefill).length ? prefill : undefined;
+    } catch {
+      return undefined;
+    }
   }
 
   setBottomTab(tab: 'home' | 'explore' | 'create' | 'library' | 'profile'): void {

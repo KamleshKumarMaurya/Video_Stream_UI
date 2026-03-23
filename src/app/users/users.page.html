@@ -1,24 +1,106 @@
-<ion-content class="users-page" fullscreen>
+<ion-content class="users-page">
   <div class="users-bg" aria-hidden="true"></div>
 
   <div class="users-wrap">
-    <div class="users-topbar vs-sticky-topbar">
-      <div class="users-title">Customers</div>
-      <button type="button" class="users-refresh" (click)="loadCustomers(true)" [disabled]="isLoading" aria-label="Refresh">
+    <div class="dashboard-hero">
+      <div class="dashboard-kicker">CUSTOMER DASHBOARD</div>
+      <div class="dashboard-title">User Analytics</div>
+      <!-- <div class="dashboard-sub">Track total users, activity, and fresh signups from one elegant admin view.</div> -->
+
+      <div class="dashboard-hero-grid">
+        <!-- <div class="dashboard-total">
+          <div class="dashboard-total__label">Total Users</div>
+          <div class="dashboard-total__value">{{ dashboardStats.totalUsers }}</div>
+          <div class="dashboard-total__meta">Across the Storixa customer base</div>
+        </div> -->
+
+        <div class="dashboard-stack">
+          <div class="mini-stat">
+            <div class="mini-stat__label">Active</div>
+            <div class="mini-stat__value">{{ dashboardStats.activeUsers }}</div>
+            <div class="mini-stat__hint">{{ activeRate }}% of users</div>
+          </div>
+
+          <div class="mini-stat mini-stat--soft">
+            <div class="mini-stat__label">Inactive</div>
+            <div class="mini-stat__value">{{ dashboardStats.inactiveUsers }}</div>
+            <div class="mini-stat__hint">{{ inactiveRate }}% of users</div>
+          </div>
+          <div class="mini-stat mini-stat--soft">
+            <div class="mini-stat__label">New Users</div>
+            <div class="mini-stat__value">{{ newUsersRate }}%</div>
+            <div class="mini-stat__hint">{{ newUsersRate }} new users in 7 days</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- <div class="dashboard-bars">
+        <div class="bar-row">
+          <div class="bar-head">
+            <span>Active ratio</span>
+            <strong>{{ activeRate }}%</strong>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill bar-fill--active" [style.width.%]="activeRate"></div>
+          </div>
+        </div>
+
+        <div class="bar-row">
+          <div class="bar-head">
+            <span>Inactive ratio</span>
+            <strong>{{ inactiveRate }}%</strong>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill bar-fill--inactive" [style.width.%]="inactiveRate"></div>
+          </div>
+        </div>
+
+        <div class="bar-row">
+          <div class="bar-head">
+            <span>New users in 7 days</span>
+            <strong>{{ newUsersRate }}%</strong>
+          </div>
+          <div class="bar-track">
+            <div class="bar-fill bar-fill--new" [style.width.%]="newUsersRate"></div>
+          </div>
+        </div>
+      </div> -->
+    </div>
+
+    <div class="section-head">
+      <div>
+        <div class="section-kicker">ACCOUNT CONTROL</div>
+        <div class="section-title">Customer List</div>
+      </div>
+      <button type="button" class="users-refresh" (click)="refreshDashboard()" [disabled]="isLoading || isLoadingDashboard" aria-label="Refresh">
         <ion-icon name="refresh-outline"></ion-icon>
       </button>
     </div>
 
-    <div class="users-sub">Toggle Active status</div>
+    <div class="users-sub">Toggle active status and review each subscription at a glance.</div>
 
     <div class="users-list">
       <div class="user-card" *ngFor="let c of customers">
         <div class="user-main">
-          <div class="user-name">{{ c?.mobileNo || c?.email || ('Customer #' + c?.id) }}</div>
-          <div class="user-meta">
-            <span>ID: {{ c?.id }}</span>
-            <span *ngIf="c?.subscriptionActive; else subOff">Subscription: Active</span>
-            <ng-template #subOff><span>Subscription: Inactive</span></ng-template>
+          <!-- <div class="user-avatar">
+            {{ getUserAvatarLetter(c) }}
+          </div> -->
+
+          <div class="user-copy">
+            <div class="user-name">{{ c?.mobileNo || c?.email || ('Customer #' + c?.id) }}</div>
+            <div class="user-meta">
+              <span>ID: {{ c?.id }}</span>
+              <span *ngIf="c?.subscriptionActive; else subOff">Subscription: Active</span>
+              <ng-template #subOff><span>Subscription: Inactive</span></ng-template>
+            </div>
+            <div class="user-badges">
+              <span class="badge" [class.badge--active]="!!c?.active" [class.badge--inactive]="!c?.active">
+                {{ c?.active ? 'Active' : 'Inactive' }}
+              </span>
+              <span class="badge badge--soft" *ngIf="c?.createdAt || c?.created_at">
+                New user
+              </span>
+            </div>
           </div>
         </div>
 

@@ -1,6 +1,9 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { AdminService } from '../services/admin.service';
+import { StoryService } from '../services/story.service';
+import { WishlistService, WishlistStory } from '../services/wishlist.service';
+import { DownloadService } from '../services/download.service';
 
 type UserRole = 'admin' | 'customer';
 
@@ -13,22 +16,38 @@ type UserRole = 'admin' | 'customer';
 export class ProfilePage implements OnInit {
   private router = inject(Router);
   private adminService = inject(AdminService);
+  storyService = inject(StoryService);
+  private wishlistService = inject(WishlistService);
+  private downloadService = inject(DownloadService);
 
   role: UserRole = 'customer';
   phone = '';
+  email = '';
   customerCode = '';
 
   subscriptionPlan = 'Standard';
   subscriptionStatus: 'Active' | 'Inactive' = 'Inactive';
   subscriptionNote = '';
   subscriptionActive = false;
-  trialDaysLeft = 0;
+  isTrialActive = false;
+  subscriptionExpiryLabel = '';
+  subscriptionRemainingDays: number | null = null;
   isLoadingSubscription = false;
+  wishlistItems: WishlistStory[] = [];
+  downloadCount = 0;
 
   activeBottomTab: 'home' | 'explore' | 'create' | 'library' | 'profile' = 'profile';
 
   get isAdmin(): boolean {
     return this.role === 'admin';
+  }
+
+  get profileIdentityLabel(): string {
+    return this.isAdmin ? 'EMAIL' : 'MOBILE NUMBER';
+  }
+
+  get profileIdentityValue(): string {
+    return this.isAdmin ? (this.email || '—') : (this.phone || '—');
   }
 
   ngOnInit(): void {
@@ -37,6 +56,8 @@ export class ProfilePage implements OnInit {
 
   ionViewWillEnter(): void {
     this.refresh();
+    this.refreshWishlist();
+    void this.refreshDownloads();
   }
 
   private refresh(): void {
@@ -46,9 +67,15 @@ export class ProfilePage implements OnInit {
 
       const phone = localStorage.getItem('vs_phone');
       if (phone) this.phone = phone;
+      else this.phone = '';
+
+      const email = localStorage.getItem('vs_email');
+      if (email) this.email = email;
+      else this.email = '';
 
       const custCode = localStorage.getItem('vs_customer_code');
       if (custCode) this.customerCode = custCode;
+      else this.customerCode = '';
 
       if (this.role === 'admin') {
         this.subscriptionPlan = 'Premium';
@@ -62,6 +89,28 @@ export class ProfilePage implements OnInit {
     }
 
     this.loadSubscriptionFromApi();
+  }
+
+  private refreshWishlist(): void {
+    if (this.role !== 'customer') {
+      this.wishlistItems = [];
+      return;
+    }
+
+    this.wishlistItems = this.wishlistService.getItems();
+  }
+
+  private async refreshDownloads(): Promise<void> {
+    if (this.isAdmin) {
+      this.downloadCount = 0;
+      return;
+    }
+
+    try {
+      this.downloadCount = await this.downloadService.getDownloadCountForCurrentUser();
+    } catch {
+      this.downloadCount = 0;
+    }
   }
 
   private loadSubscriptionFromApi(): void {
@@ -80,20 +129,77 @@ export class ProfilePage implements OnInit {
     this.isLoadingSubscription = true;
     this.adminService.getCustomer(userId).subscribe({
       next: (res: any) => {
-        const active = !!res?.subscriptionActive;
-        this.subscriptionActive = active;
-        this.subscriptionStatus = active ? 'Active' : 'Inactive';
-        this.subscriptionPlan = res?.activePlanName || 'Standard';
-        const expiry = res?.subscriptionExpiryDate;
-        this.subscriptionNote = active
-          ? (expiry ? `Valid until ${this.formatDate(expiry)}` : 'Subscription active')
-          : 'No active subscription. Subscribe to unlock more.';
+        const explicitTrialActive = this.pickFirstBoolean(
+          res?.trialActive,
+          res?.isTrialActive,
+          res?.onTrial,
+          res?.isOnTrial,
+          res?.trialPlanActive,
+          res?.isTrialPlanActive,
+        );
+
+        const normalPlanActive = this.pickFirstBoolean(
+          res?.isNormalPlanActive,
+          res?.normalPlanActive,
+          res?.isPaidPlanActive,
+          res?.paidPlanActive,
+        );
+
+        const activeFlag = !!res?.subscriptionActive || explicitTrialActive === true;
+        const inferredTrialActive = activeFlag && normalPlanActive === false;
+        const trialActive = explicitTrialActive === true || inferredTrialActive;
+        const expiryRaw = trialActive
+          ? (res?.trialExpiryDate ?? res?.trialExpiry ?? res?.trialEndDate ?? res?.subscriptionExpiryDate ?? res?.subscriptionExpiry)
+          : (res?.subscriptionExpiryDate ?? res?.subscriptionExpiry ?? res?.subscriptionExpiryMs);
+
+        const expiryMs = this.parseExpiryMs(expiryRaw);
+        const now = Date.now();
+        const notExpired = expiryMs == null ? true : expiryMs > now;
+        const isActive = activeFlag && notExpired;
+
+        this.isTrialActive = trialActive && isActive;
+        this.subscriptionActive = isActive;
+        this.subscriptionStatus = isActive ? 'Active' : 'Inactive';
+
+        const planName = this.isTrialActive
+          ? '7 Days Trial'
+          : (res?.activePlanName || res?.planName || res?.subscriptionPlanName || 'Standard');
+        this.subscriptionPlan = String(planName || 'Standard');
+
+        if (isActive && expiryMs != null) {
+          this.subscriptionExpiryLabel = this.isTrialActive
+            ? `Trial ends: ${this.formatDateTime(expiryMs)}`
+            : `Expires: ${this.formatDateTime(expiryMs)}`;
+          this.subscriptionRemainingDays = this.remainingDays(expiryMs);
+        } else if (!isActive && expiryMs != null) {
+          this.subscriptionExpiryLabel = `Expired: ${this.formatDateTime(expiryMs)}`;
+          this.subscriptionRemainingDays = null;
+        } else {
+          this.subscriptionExpiryLabel = '';
+          this.subscriptionRemainingDays = null;
+        }
+
+        this.subscriptionNote = this.isTrialActive
+          ? 'Trial plan is active.'
+          : (isActive ? 'Subscription is active.' : 'No active subscription. Subscribe to unlock more.');
+
+        try {
+          localStorage.setItem('vs_subscription_backend_active', isActive ? '1' : '0');
+          if (expiryMs != null) localStorage.setItem('vs_subscription_backend_expiry_ms', String(expiryMs));
+          else localStorage.removeItem('vs_subscription_backend_expiry_ms');
+        } catch {
+          /* ignore */
+        }
+
         this.isLoadingSubscription = false;
       },
       error: () => {
         this.subscriptionPlan = 'Standard';
         this.subscriptionActive = false;
         this.subscriptionStatus = 'Inactive';
+        this.isTrialActive = false;
+        this.subscriptionExpiryLabel = '';
+        this.subscriptionRemainingDays = null;
         this.subscriptionNote = 'Could not fetch subscription status.';
         this.isLoadingSubscription = false;
       },
@@ -116,15 +222,53 @@ export class ProfilePage implements OnInit {
     }
   }
 
-  private formatDate(value: any): string {
+  private pickFirstBoolean(...values: any[]): boolean | null {
+    for (const v of values) {
+      if (typeof v === 'boolean') return v;
+    }
+    return null;
+  }
+
+  private parseExpiryMs(value: any): number | null {
+    if (value == null) return null;
+    const num = Number(value);
+    if (Number.isFinite(num) && num > 0) return num;
+    const parsed = Date.parse(String(value));
+    if (Number.isFinite(parsed) && !Number.isNaN(parsed)) return parsed;
+    return null;
+  }
+
+  private formatDateTime(value: any): string {
     const num = Number(value);
     const d = Number.isFinite(num) ? new Date(num) : new Date(String(value));
     if (Number.isNaN(d.getTime())) return String(value);
-    return d.toLocaleDateString();
+    return d.toLocaleString(undefined, { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+  }
+
+  private remainingDays(expiryMs: number): number {
+    const leftMs = Math.max(0, expiryMs - Date.now());
+    return Math.max(0, Math.ceil(leftMs / (24 * 60 * 60 * 1000)));
   }
 
   openSubscription(): void {
     this.router.navigateByUrl('/subscription');
+  }
+
+  openDownloads(): void {
+    this.router.navigateByUrl('/downloads');
+  }
+
+  openWishlistStory(storyId: string | number): void {
+    if (storyId == null || storyId === '') return;
+    this.router.navigateByUrl(`/story/${storyId}`);
+  }
+
+  removeWishlistItem(item: WishlistStory, ev: Event): void {
+    ev.stopPropagation();
+    const removed = this.wishlistService.removeStory(item.id);
+    if (removed) {
+      this.refreshWishlist();
+    }
   }
 
   logout(): void {
@@ -179,7 +323,5 @@ export class ProfilePage implements OnInit {
       this.router.navigateByUrl('/users');
       return;
     }
-    // eslint-disable-next-line no-console
-    console.log('Bottom tab tapped:', tab);
   }
 }

@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpEvent, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 
@@ -58,10 +58,13 @@ export class StoryService {
     return this.http.get(`${this.base}/stories/${storyId}/episodes`, { headers: this.buildHeaders() });
   }
 
-  createStory(payload: { title: string; description: string; thumbnail: File }): Observable<any> {
+  createStory(payload: { title: string; description: string; thumbnail: File; latest_story?: boolean }): Observable<any> {
     const formData = new FormData();
     formData.append('title', payload.title);
     formData.append('description', payload.description);
+    if (payload.latest_story != null) {
+      formData.append('latest_story', String(payload.latest_story));
+    }
     formData.append('thumbnail', payload.thumbnail);
 
     return this.http.post(`${this.base}/stories`, formData, { headers: this.buildHeaders() });
@@ -82,6 +85,41 @@ export class StoryService {
     formData.append('thumbnail', payload.thumbnail);
 
     return this.http.post(`${this.base}/stories/upload-episode`, formData, { headers: this.buildHeaders() });
+  }
+
+  uploadEpisodeWithProgress(payload: {
+    storyId: string | number;
+    episodeNumber: string | number;
+    title: string;
+    file: File;
+    thumbnail: File;
+  }): Observable<HttpEvent<any>> {
+    const formData = new FormData();
+    formData.append('storyId', String(payload.storyId));
+    formData.append('episodeNumber', String(payload.episodeNumber));
+    formData.append('title', payload.title);
+    formData.append('file', payload.file);
+    formData.append('thumbnail', payload.thumbnail);
+
+    return this.http.post(`${this.base}/stories/upload-episode`, formData, {
+      headers: this.buildHeaders(),
+      observe: 'events',
+      reportProgress: true,
+    });
+  }
+
+  getUploadStatus(jobId: string | number): Observable<any> {
+    return this.http.get(`${this.base}/stories/upload-status/${jobId}`, { headers: this.buildHeaders() });
+  }
+
+  getActiveUploads(): Observable<any> {
+    return this.http.get(`${this.base}/stories/upload-status/active`, { headers: this.buildHeaders() });
+  }
+
+  getDownloadUrl(episodeId: string | number): Observable<{ url: string }> {
+    return this.http.get<{ url: string }>(`${this.base}/episodes/downlaod/${episodeId}`, {
+      headers: this.buildHeaders(),
+    });
   }
 
   /**

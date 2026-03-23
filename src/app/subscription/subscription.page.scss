@@ -20,8 +20,8 @@ ion-content.sub-page {
   position: relative;
   max-width: 420px;
   margin: 0 auto;
-  padding: calc(14px + var(--ion-safe-area-top, 24px)) 18px 0;
-  padding-bottom: calc(110px + var(--ion-safe-area-bottom, 0px));
+  padding: calc(14px + var(--vs-safe-area-top, 0px)) 18px 0;
+  padding-bottom: calc(110px + var(--vs-safe-area-bottom, 0px));
 }
 
 .sub-topbar {
@@ -233,6 +233,10 @@ ion-content.sub-page {
   border-color: rgba(255, 122, 26, 0.35);
 }
 
+.plan:disabled {
+  opacity: 0.72;
+}
+
 .best-badge {
   position: absolute;
   left: 14px;
@@ -311,6 +315,40 @@ ion-content.sub-page {
   opacity: 0.65;
 }
 
+.sub-payment-note {
+  margin-top: 12px;
+  border-radius: 18px;
+  padding: 12px 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  text-align: center;
+}
+
+.sub-payment-title {
+  font-weight: 950;
+  color: rgba(227, 229, 255, 0.92);
+}
+
+.sub-payment-sub {
+  margin-top: 6px;
+  font-weight: 750;
+  font-size: 12px;
+  color: rgba(227, 229, 255, 0.72);
+  word-break: break-word;
+}
+
+.sub-payment-sub.sub-payment-sub--error {
+  color: rgba(255, 122, 26, 0.95);
+}
+
+.sub-payment-cancel {
+  margin-top: 10px;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 122, 26, 0.95);
+  font-weight: 900;
+}
+
 .sub-legal {
   margin-top: 12px;
   color: rgba(227, 229, 255, 0.75);
@@ -329,10 +367,10 @@ ion-content.sub-page {
   left: 0;
   right: 0;
   bottom: 0;
-  height: calc(78px + var(--ion-safe-area-bottom, 0px));
+  height: calc(78px + var(--vs-safe-area-bottom, 0px));
   display: grid;
   align-items: center;
-  padding: 10px 12px calc(10px + var(--ion-safe-area-bottom, 0px));
+  padding: 10px 12px calc(10px + var(--vs-safe-area-bottom, 0px));
   background: rgba(12, 0, 28, 0.78);
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(18px);

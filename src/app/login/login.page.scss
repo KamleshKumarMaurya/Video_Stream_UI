@@ -6,119 +6,6 @@
   overflow: hidden;
 }
 
-.login-container {
-  min-height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px 16px;
-  text-align: center;
-  color: white;
-}
-
-.login-card {
-  width: 100%;
-  max-width: 340px;
-  padding: 28px 22px 20px;
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow: 0 24px 55px rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(14px);
-}
-
-.logo img {
-  width: 64px;
-  height: 64px;
-  display: block;
-  margin: 0 auto 12px;
-}
-
-h1 {
-  font-size: 22px;
-  font-weight: 650;
-  margin-bottom: 4px;
-}
-
-.subtitle {
-  font-size: 13px;
-  color: rgba(227, 229, 255, 0.78);
-  margin: 0 0 22px;
-}
-
-.google-btn {
-  --background: white;
-  --color: #111827;
-  --border-radius: 10px;
-  --box-shadow: none;
-  height: 46px;
-  font-weight: 600;
-  text-transform: none;
-  margin: 0 0 12px;
-}
-
-.google-btn::part(native) {
-  justify-content: center;
-  gap: 10px;
-}
-
-.google-icon {
-  width: 18px;
-  height: 18px;
-}
-
-.email-btn {
-  --background: #3f4bff;
-  --border-radius: 10px;
-  --box-shadow: none;
-  height: 46px;
-  font-weight: 600;
-  text-transform: none;
-}
-
-.signup {
-  margin-top: 18px;
-  font-size: 12px;
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  justify-content: center;
-  color: rgba(227, 229, 255, 0.78);
-}
-
-.signup-link {
-  appearance: none;
-  background: transparent;
-  border: 0;
-  padding: 0;
-  color: #ffffff;
-  font-weight: 650;
-  text-decoration: underline;
-}
-
-.email-modal-content,
-.signup-modal-content {
-  --background: #0b1020;
-  color: #ffffff;
-}
-
-.email-card,
-.signup-card {
-  padding: 16px;
-}
-
-.email-submit-btn {
-  margin-top: 12px;
-  --border-radius: 10px;
-  --box-shadow: none;
-  text-transform: none;
-}
-
-.signup-copy {
-  margin: 0 0 14px;
-  color: rgba(227, 229, 255, 0.78);
-}
-
 .bg-shapes {
   position: absolute;
   inset: 0;
@@ -164,54 +51,72 @@ h1 {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 54px 22px 18px;
+  padding: 55px 22px 18px;
   color: #ffffff;
   position: relative;
   z-index: 1;
 }
 
 .hero {
-  padding-top: 12px;
+  padding-top: 8px;
   text-align: left;
 }
 
-.app-mark__circle {
-  width: 72px;
-  height: 72px;
-  border-radius: 999px;
-  display: grid;
-  place-items: center;
-  background: rgba(167, 107, 255, 0.9);
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+.brand-lockup {
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 
-.app-mark__circle ion-icon {
-  font-size: 30px;
-  color: #0b0b0b;
+.brand-lockup__icon {
+  width: 74px;
+  height: 74px;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(185, 92, 255, 0.45), transparent 45%),
+    linear-gradient(145deg, rgba(99, 36, 163, 0.98), rgba(26, 0, 56, 0.98));
+  box-shadow:
+    0 18px 40px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  flex: 0 0 auto;
+}
+
+.brand-lockup__icon img {
+  width: 70px;
+  height: 70px;
+  display: block;
+  filter: drop-shadow(0 0 14px rgba(196, 120, 255, 0.45));
+}
+
+.brand-lockup__text {
+  min-width: 0;
 }
 
 .title {
-  font-size: 56px;
+  font-size: clamp(42px, 8vw, 56px);
   line-height: 1.02;
   letter-spacing: -0.02em;
   font-weight: 780;
-  margin: 18px 0 12px;
+  margin: 0;
 }
 
 .tagline {
-  margin: 0;
-  font-size: 22px;
+  margin: 10px 0 0;
+  font-size: clamp(18px, 3.8vw, 22px);
   line-height: 1.25;
   color: rgba(227, 229, 255, 0.72);
 }
 
 .bottom-sheet {
-  margin-top: 22px;
-  border-radius: 26px;
+  margin-top: -100px;
+  border-radius: 30px;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
   backdrop-filter: blur(18px);
+  overflow: hidden;
 }
 
 .sheet-inner {
@@ -219,7 +124,7 @@ h1 {
 }
 
 .provider-btn {
-  --border-radius: 999px;
+  --border-radius: 18px;
   --box-shadow: none;
   --background: rgba(255, 255, 255, 0.08);
   --color: rgba(255, 255, 255, 0.92);
@@ -233,6 +138,7 @@ h1 {
   justify-content: center;
   gap: 12px;
   padding: 0 18px;
+  border-radius: 18px;
 }
 
 .provider-btn--google {
@@ -249,7 +155,7 @@ h1 {
 }
 
 .primary-btn {
-  --border-radius: 16px;
+  --border-radius: 18px;
   --box-shadow: none;
   --background: rgba(255, 255, 255, 0.14);
   --color: rgba(255, 255, 255, 0.95);
@@ -289,11 +195,19 @@ h1 {
 
 .field-item {
   --background: rgba(255, 255, 255, 0.08);
-  --border-radius: 16px;
+  --border-radius: 18px;
   --padding-start: 14px;
   --inner-padding-end: 12px;
   --min-height: 54px;
   border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.field-item::part(native) {
+  border-radius: 18px;
+  overflow: hidden;
 }
 
 .field-item ion-input {
@@ -310,6 +224,11 @@ h1 {
   font-weight: 650;
   padding: 12px 0 4px;
   width: 100%;
+}
+
+.link-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .tos {

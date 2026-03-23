@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { ToastController } from '@ionic/angular';
 import { StoryService } from '../services/story.service';
 import { Router } from '@angular/router';
@@ -9,7 +9,7 @@ import { Router } from '@angular/router';
   styleUrls: ['./add-story.page.scss'],
   standalone: false,
 })
-export class AddStoryPage implements OnInit {
+export class AddStoryPage implements OnInit, OnDestroy {
   private storyService = inject(StoryService);
   private toastController = inject(ToastController);
   private router = inject(Router);
@@ -17,35 +17,27 @@ export class AddStoryPage implements OnInit {
   storyForm = {
     title: '',
     description: '',
+    latest_story: false,
   };
-
-  episodeForm = {
-    storyId: '' as string | number,
-    episodeNumber: '',
-    title: '',
-    category: 'Lifestyle',
-  };
+  isCreateStoryModalOpen = false;
 
   activeBottomTab: 'home' | 'explore' | 'create' | 'library' | 'profile' = 'create';
   role: 'admin' | 'customer' = 'customer';
+  lastCreatedStoryId: string | number | null = null;
 
   get isAdmin(): boolean {
     return this.role === 'admin';
   }
 
-  get isSubmitting(): boolean {
-    return this.isUploadingEpisode;
-  }
-
   stories: any[] = [];
   isLoadingStories = false;
+  activeUploads: any[] = [];
+  isLoadingActiveUploads = false;
+  private activeUploadsPollTimer: number | null = null;
+  private isActiveUploadsPolling = false;
 
   storyThumbnailFile: File | null = null;
   isCreatingStory = false;
-
-  videoFile: File | null = null;
-  episodeThumbnailFile: File | null = null;
-  isUploadingEpisode = false;
 
   ngOnInit(): void {
     try {
@@ -60,7 +52,23 @@ export class AddStoryPage implements OnInit {
       this.router.navigateByUrl('/home?tab=home', { replaceUrl: true });
       return;
     }
+  }
+
+  ionViewWillEnter(): void {
+    if (!this.isAdmin) return;
+    this.isActiveUploadsPolling = true;
     this.loadStories();
+    this.loadActiveUploads();
+  }
+
+  ionViewWillLeave(): void {
+    this.isActiveUploadsPolling = false;
+    this.stopActiveUploadsPolling();
+  }
+
+  ngOnDestroy(): void {
+    this.isActiveUploadsPolling = false;
+    this.stopActiveUploadsPolling();
   }
 
   loadStories(): void {
@@ -72,22 +80,28 @@ export class AddStoryPage implements OnInit {
         this.isLoadingStories = false;
       },
       error: async (err) => {
-        // eslint-disable-next-line no-console
-        console.error('Failed to fetch stories', err);
         this.isLoadingStories = false;
         await this.showToast('Failed to load stories.');
       },
     });
   }
 
-  onVideoChange(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    this.videoFile = input.files?.[0] ?? null;
-  }
+  loadActiveUploads(): void {
+    if (this.isLoadingActiveUploads) return;
+    this.isLoadingActiveUploads = true;
 
-  onThumbnailChange(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    this.episodeThumbnailFile = input.files?.[0] ?? null;
+    this.storyService.getActiveUploads().subscribe({
+      next: (res: any) => {
+        const jobs = this.storyService.extractStories(res)
+          .filter((job: any) => this.isActiveUpload(job))
+          .sort((a: any, b: any) => this.getJobCreatedAtMs(b) - this.getJobCreatedAtMs(a));
+        this.activeUploads = jobs;
+        this.isLoadingActiveUploads = false;
+      },
+      error: async (err) => {
+        this.isLoadingActiveUploads = false;
+      },
+    });
   }
 
   onStoryThumbnailChange(event: Event): void {
@@ -104,20 +118,95 @@ export class AddStoryPage implements OnInit {
     ev.stopPropagation();
   }
 
-  onVideoDrop(ev: DragEvent): void {
-    this.preventDefault(ev);
-    const file = ev.dataTransfer?.files?.[0];
-    if (file) this.videoFile = file;
-  }
-
-  onThumbDrop(ev: DragEvent): void {
-    this.preventDefault(ev);
-    const file = ev.dataTransfer?.files?.[0];
-    if (file) this.episodeThumbnailFile = file;
-  }
-
   toCover(story: any): string {
     return this.storyService.toAbsUrl(story?.thumbnail ?? story?.cover) || 'assets/story.png';
+  }
+
+  getActiveUploadTitle(job: any): string {
+    return job?.storyTitle || job?.story_title || job?.storyName || job?.title || `Job ${this.getJobId(job)}`;
+  }
+
+  getActiveUploadSubtitle(job: any): string {
+    const episode = job?.episodeNumber ?? job?.episode_number ?? job?.episode ?? job?.episodeNo;
+    const status = String(job?.status ?? job?.state ?? 'PROCESSING').trim();
+    const parts = [`Status: ${status}`];
+    if (episode != null && episode !== '') parts.unshift(`Episode ${episode}`);
+    return parts.join(' • ');
+  }
+
+  getActiveUploadProgress(job: any): number {
+    const raw =
+      job?.progress ??
+      job?.progressPercentage ??
+      job?.progress_percent ??
+      job?.percentage ??
+      job?.percent ??
+      job?.completion ??
+      job?.completionPercent;
+
+    const progress = Number(raw);
+    if (Number.isFinite(progress)) return Math.max(0, Math.min(100, progress));
+
+    const status = String(job?.status ?? job?.state ?? '').trim().toUpperCase();
+    if (status === 'UPLOADING') return 65;
+    if (status === 'PROCESSING') return 90;
+    if (status === 'COMPLETED' || status === 'DONE' || status === 'SUCCESS') return 100;
+    return 50;
+  }
+
+  getActiveUploadStatus(job: any): string {
+    const status = String(job?.status ?? job?.state ?? 'PROCESSING').trim();
+    const progress = this.getActiveUploadProgress(job);
+    return progress ? `${status} • ${progress}%` : status;
+  }
+
+  getActiveUploadBadge(job: any): string {
+    const status = String(job?.status ?? job?.state ?? 'PROCESSING').trim();
+    return status.toUpperCase();
+  }
+
+  getActiveUploadHint(job: any): string {
+    const storyId = job?.storyId ?? job?.story_id ?? job?.story?.id;
+    const jobId = this.getJobId(job);
+    if (storyId != null) return `Story #${storyId}${jobId != null ? ` • Job #${jobId}` : ''}`;
+    return jobId != null ? `Job #${jobId}` : 'Active upload';
+  }
+
+  isActiveUpload(job: any): boolean {
+    const status = String(job?.status ?? job?.state ?? '').trim().toUpperCase();
+    return status ? ['UPLOADING', 'PROCESSING'].includes(status) : true;
+  }
+
+  private getJobId(job: any): string | number | null {
+    return job?.jobId ?? job?.job_id ?? job?.id ?? null;
+  }
+
+  private getJobCreatedAtMs(job: any): number {
+    const raw = job?.createdAt ?? job?.created_at ?? job?.created_at_ms ?? job?.createdAtMs;
+    if (raw == null) return 0;
+    if (typeof raw === 'number') return Number.isFinite(raw) ? raw : 0;
+
+    const text = String(raw).trim();
+    if (!text) return 0;
+
+    const asNumber = Number(text);
+    if (Number.isFinite(asNumber)) return asNumber;
+
+    const parsed = Date.parse(text);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  private scheduleActiveUploadsRefresh(): void {
+    if (!this.isActiveUploadsPolling) return;
+    this.stopActiveUploadsPolling();
+    this.activeUploadsPollTimer = window.setTimeout(() => this.loadActiveUploads(), 5000);
+  }
+
+  private stopActiveUploadsPolling(): void {
+    if (this.activeUploadsPollTimer != null) {
+      clearTimeout(this.activeUploadsPollTimer);
+      this.activeUploadsPollTimer = null;
+    }
   }
 
   setBottomTab(tab: 'home' | 'explore' | 'create' | 'library' | 'profile'): void {
@@ -139,9 +228,18 @@ export class AddStoryPage implements OnInit {
       this.router.navigateByUrl('/profile');
       return;
     }
-    // TODO: wire library/profile when routes exist
-    // eslint-disable-next-line no-console
-    console.log('Bottom tab tapped:', tab);
+  }
+
+  openCreateStoryModal(): void {
+    this.isCreateStoryModalOpen = true;
+  }
+
+  closeCreateStoryModal(): void {
+    this.isCreateStoryModalOpen = false;
+  }
+
+  openUploadEpisode(): void {
+    this.goToUploadEpisode();
   }
 
   async submitStory(): Promise<void> {
@@ -156,62 +254,35 @@ export class AddStoryPage implements OnInit {
     this.storyService.createStory({
       title: this.storyForm.title,
       description: this.storyForm.description,
+      latest_story: this.storyForm.latest_story,
       thumbnail: this.storyThumbnailFile,
     }).subscribe({
       next: async (created: any) => {
         await this.showToast('Story created.');
         const createdId = created?.id ?? created?.storyId ?? created?.data?.id;
-        this.storyForm = { title: '', description: '' };
+        this.lastCreatedStoryId = createdId ?? null;
+        this.storyForm = { title: '', description: '', latest_story: false };
         this.storyThumbnailFile = null;
         this.isCreatingStory = false;
+        this.closeCreateStoryModal();
         this.loadStories();
-        if (createdId != null) this.episodeForm.storyId = createdId;
       },
       error: async (err) => {
-        console.error('Failed to create story', err);
         await this.showToast('Failed to create story.');
         this.isCreatingStory = false;
       },
     });
   }
 
-  async submitEpisode(): Promise<void> {
-    if (this.isUploadingEpisode) {
+  goToUploadEpisode(): void {
+    if (this.lastCreatedStoryId != null) {
+      this.router.navigate(['/stories/upload-episode'], {
+        queryParams: { storyId: this.lastCreatedStoryId },
+      });
       return;
     }
 
-    if (!this.episodeForm.storyId || !this.episodeForm.episodeNumber || !this.episodeForm.title || !this.videoFile || !this.episodeThumbnailFile) {
-      await this.showToast('Please fill all fields and select both files.');
-      return;
-    }
-
-    this.isUploadingEpisode = true;
-
-    this.storyService.uploadEpisode({
-      storyId: this.episodeForm.storyId,
-      episodeNumber: this.episodeForm.episodeNumber,
-      title: this.episodeForm.title,
-      file: this.videoFile,
-      thumbnail: this.episodeThumbnailFile,
-    }).subscribe({
-      next: async () => {
-        await this.showToast('Episode uploaded successfully.');
-        this.episodeForm = {
-          storyId: '',
-          episodeNumber: '',
-          title: '',
-          category: 'Lifestyle',
-        };
-        this.videoFile = null;
-        this.episodeThumbnailFile = null;
-        this.isUploadingEpisode = false;
-      },
-      error: async (err) => {
-        console.error('Failed to upload episode', err);
-        await this.showToast('Upload failed. Check API and try again.');
-        this.isUploadingEpisode = false;
-      }
-    });
+    this.router.navigateByUrl('/stories/upload-episode');
   }
 
   private async showToast(message: string): Promise<void> {

@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Video Streaming</string>
-    <string name="title_activity_main">Video Streaming</string>
-    <string name="package_name">com.example.videostreaming</string>
-    <string name="custom_url_scheme">com.example.videostreaming</string>
+    <string name="app_name">Storixa</string>
+    <string name="title_activity_main">Storixa</string>
+    <string name="package_name">com.storixa.app</string>
+    <string name="custom_url_scheme">com.storixa.app</string>
 </resources>

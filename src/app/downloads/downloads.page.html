@@ -1,0 +1,49 @@
+<ion-header class="downloads-header" translucent="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/profile" text="Back"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Downloads Episodes</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="downloads-page" fullscreen>
+  <div class="downloads-bg" aria-hidden="true"></div>
+
+  <div class="downloads-wrap">
+    <div class="empty-card" *ngIf="!isLoading && !groupedDownloads.length">
+      <div class="empty-title">No downloads yet</div>
+      <div class="empty-sub">Use the download button on any episode to save it here.</div>
+    </div>
+
+    <ng-container *ngIf="!isLoading">
+      <div class="story-group" *ngFor="let group of groupedDownloads; trackBy: trackByGroup">
+        <div class="download-row"
+          *ngFor="let item of group.episodes; trackBy: trackByEpisode"
+          role="button"
+          tabindex="0"
+          (click)="openDownload(item)"
+          (keydown.enter)="openDownload(item)"
+          (keydown.space)="$event.preventDefault(); openDownload(item)"
+        >
+          <img class="download-thumb" [src]="storyService.toAbsUrl(item.episodeThumbnail || item.storyThumbnail) || 'assets/story.png'" alt="" />
+          <div class="download-meta">
+            <div class="download-kicker">{{ group.storyTitle }} </div>
+            <div class="download-title">Episode {{ item.episodeNumber }} - {{ item.episodeTitle }}</div>
+            <div class="download-sub">
+              {{ formatDate(item.downloadedAt) }} · {{ formatSize(item.size) }}
+            </div>
+          </div>
+          <div class="download-actions">
+            <button type="button" class="play-btn" (click)="openDownload(item); $event.stopPropagation()">
+              <ion-icon name="play"></ion-icon>
+            </button>
+            <button type="button" class="remove-btn" (click)="removeDownload(item, $event)">
+              <ion-icon name="trash-outline"></ion-icon>
+            </button>
+          </div>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+</ion-content>

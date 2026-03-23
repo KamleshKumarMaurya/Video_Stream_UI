@@ -1,4 +1,4 @@
-package com.example.videostreaming;
+package com.storixa.app;
 
 import android.os.Bundle;
 import android.webkit.WebSettings;

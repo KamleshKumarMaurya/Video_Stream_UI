@@ -1,4 +1,7 @@
 export const environment = {
   production: true,
-  apiBase: 'http://192.168.1.78:8080'
+  apiBase: 'https://migration-contributors-velocity-mlb.trycloudflare.com',
+  adminLoginEnabled: true,
+  razorpayKeyId: '',
+  razorpayCurrency: 'INR',
 };

@@ -1,0 +1,96 @@
+<ion-content class="upload-episode-page">
+  <div class="upload-bg" aria-hidden="true"></div>
+
+  <div class="upload-wrap">
+    <div class="upload-loader" *ngIf="isUploadingEpisode">
+      <div class="upload-loader__card">
+        <ion-spinner name="crescent"></ion-spinner>
+        <div class="upload-loader__text">Uploading episode...</div>
+        <div class="upload-loader__sub">Waiting for response.</div>
+      </div>
+    </div>
+
+    <div class="upload-hero">
+      <button type="button" class="back-btn" (click)="goBackToAddStory()" aria-label="Back to add story">
+        <ion-icon name="arrow-back-outline"></ion-icon>
+      </button>
+
+      <div class="upload-kicker">EPISODE STUDIO</div>
+      <div class="upload-title">Upload Episode</div>
+      <div class="upload-sub">Upload starts in the background, then this page closes after the server accepts it.</div>
+    </div>
+
+    <div class="form-block">
+      <div class="field">
+        <div class="field-label">Story</div>
+        <ion-item lines="none" class="field-item">
+          <ion-select
+            interface="popover"
+            [(ngModel)]="uploadForm.storyId"
+            placeholder="Select story"
+            [disabled]="isLoadingStories"
+          >
+            <ion-select-option *ngFor="let s of stories" [value]="s.id">
+              {{ (s.title || ('Story ' + s.id)) + '  #' + s.id }}
+            </ion-select-option>
+          </ion-select>
+        </ion-item>
+      </div>
+
+      <div class="field-grid">
+        <div class="field">
+          <div class="field-label">Episode Number</div>
+          <ion-item lines="none" class="field-item">
+            <ion-input type="number" inputmode="numeric" [(ngModel)]="uploadForm.episodeNumber" placeholder="e.g. 1"></ion-input>
+          </ion-item>
+        </div>
+
+        <div class="field">
+          <div class="field-label">Category</div>
+          <ion-item lines="none" class="field-item">
+            <ion-select interface="popover" [(ngModel)]="uploadForm.category">
+              <ion-select-option value="Lifestyle">Lifestyle</ion-select-option>
+              <ion-select-option value="Tech">Tech</ion-select-option>
+              <ion-select-option value="Creative">Creative</ion-select-option>
+              <ion-select-option value="Education">Education</ion-select-option>
+              <ion-select-option value="Entertainment">Entertainment</ion-select-option>
+              <ion-select-option value="Nature">Nature</ion-select-option>
+            </ion-select>
+          </ion-item>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="field-label">Episode Title</div>
+        <ion-item lines="none" class="field-item">
+          <ion-input [(ngModel)]="uploadForm.title" placeholder="Enter episode title..."></ion-input>
+        </ion-item>
+      </div>
+
+      <div class="field">
+        <div class="field-label">Video File</div>
+        <div class="drop-card" (click)="pickFile(videoInput)" (dragover)="preventDefault($event)" (drop)="onVideoDrop($event)">
+          <input #videoInput class="hidden-input" type="file" accept="video/*" (change)="onVideoChange($event)" />
+          <ion-icon name="cloud-upload-outline" aria-hidden="true"></ion-icon>
+          <div class="drop-text">{{ videoFile?.name || 'Drop or choose video file' }}</div>
+          <div class="drop-sub">MP4 or MOV</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="field-label">Thumbnail</div>
+        <div class="drop-card" (click)="pickFile(thumbInput)" (dragover)="preventDefault($event)" (drop)="onThumbDrop($event)">
+          <input #thumbInput class="hidden-input" type="file" accept="image/*" (change)="onThumbnailChange($event)" />
+          <ion-icon name="image-outline" aria-hidden="true"></ion-icon>
+          <div class="drop-text">{{ episodeThumbnailFile?.name || 'Drop or choose thumbnail' }}</div>
+          <div class="drop-sub">JPG or PNG</div>
+        </div>
+      </div>
+
+      <ion-button expand="block" class="upload-btn" (click)="submitEpisode()" [disabled]="isUploadingEpisode">
+        {{ isUploadingEpisode ? 'Uploading...' : 'Upload Episode' }}
+      </ion-button>
+    </div>
+    <div class="bottom-space" aria-hidden="true"></div>
+  </div>
+</ion-content>

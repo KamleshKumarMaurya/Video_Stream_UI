@@ -9,6 +9,20 @@ ion-content.profile-page {
   color: #ffffff;
 }
 
+.profile-header ion-toolbar {
+  --background: rgba(51 4 97);
+  --color: #ffffff;
+  --border-color: rgba(255, 255, 255, 0.08);
+  --min-height: 58px;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.profile-header ion-title {
+  font-weight: 950;
+  letter-spacing: -0.02em;
+}
+
 .profile-bg {
   position: absolute;
   inset: 0;
@@ -20,41 +34,8 @@ ion-content.profile-page {
   position: relative;
   max-width: 420px;
   margin: 0 auto;
-  padding: calc(14px + var(--ion-safe-area-top, 24px)) 18px 0;
-  padding-bottom: calc(110px + var(--ion-safe-area-bottom, 0px));
-}
-
-.profile-topbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 18px;
-}
-
-.profile-brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.profile-brand-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 18px;
-  object-fit: cover;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.profile-brand-name {
-  font-weight: 950;
-  font-size: 18px;
-  letter-spacing: -0.02em;
-}
-
-.profile-top-actions {
-  display: inline-flex;
-  gap: 10px;
+  padding: 16px 18px 0;
+  padding-bottom: calc(110px + var(--vs-safe-area-bottom, 0px));
 }
 
 .profile-icon-btn {
@@ -66,6 +47,7 @@ ion-content.profile-page {
   color: rgba(255, 255, 255, 0.92);
   display: grid;
   place-items: center;
+  margin-right: 10px;
 }
 
 .profile-icon-btn ion-icon {
@@ -76,6 +58,199 @@ ion-content.profile-page {
   margin-top: 14px;
   display: grid;
   gap: 12px;
+}
+
+.wishlist-section {
+  margin-top: 16px;
+  padding: 16px 14px;
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.03) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: 0 20px 70px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(16px);
+}
+
+.wishlist-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.wishlist-kicker {
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.14em;
+  color: rgba(255, 122, 26, 0.95);
+}
+
+.wishlist-title {
+  margin-top: 4px;
+  font-size: 20px;
+  font-weight: 950;
+  letter-spacing: -0.02em;
+}
+
+.wishlist-count {
+  flex: 0 0 auto;
+  padding: 7px 11px;
+  border-radius: 999px;
+  background: rgba(167, 107, 255, 0.18);
+  border: 1px solid rgba(167, 107, 255, 0.24);
+  color: rgba(255, 255, 255, 0.94);
+  font-weight: 950;
+  font-size: 12px;
+}
+
+.wishlist-limit {
+  margin-top: 12px;
+}
+
+.wishlist-limit-bar {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.wishlist-limit-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #ff8a00 0%, #a76bff 100%);
+}
+
+.wishlist-limit-text {
+  margin-top: 8px;
+  color: rgba(227, 229, 255, 0.76);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.wishlist-empty {
+  margin-top: 14px;
+  padding: 16px;
+  border-radius: 20px;
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.wishlist-empty-title {
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.wishlist-empty-sub {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgba(227, 229, 255, 0.75);
+}
+
+.wishlist-grid {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  max-height: 430px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.wishlist-grid::-webkit-scrollbar {
+  width: 4px;
+}
+
+.wishlist-grid::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+}
+
+.wishlist-card {
+  position: relative;
+  border: 0;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 20px;
+  background: radial-gradient(120% 120% at 20% 0%, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0.04) 55%, rgba(255, 255, 255, 0.02) 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(0, 0, 0, 0.10) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.30);
+  color: #ffffff;
+}
+
+.wishlist-thumb {
+  width: 100%;
+  height: 96px;
+  border-radius: 16px;
+  object-fit: cover;
+  display: block;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.wishlist-meta {
+  min-width: 0;
+  padding-right: 24px;
+}
+
+.wishlist-cat {
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  color: rgba(255, 122, 26, 0.95);
+}
+
+.wishlist-name {
+  margin-top: 6px;
+  font-size: 14px;
+  font-weight: 950;
+  line-height: 1.2;
+  color: rgba(255, 255, 255, 0.96);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.wishlist-desc {
+  margin-top: 6px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: rgba(227, 229, 255, 0.78);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.wishlist-remove {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 30px;
+  height: 30px;
+  border-radius: 11px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.22);
+  color: rgba(255, 255, 255, 0.92);
+  display: grid;
+  place-items: center;
+}
+
+.wishlist-remove ion-icon {
+  font-size: 18px;
+}
+
+@media (max-width: 360px) {
+  .wishlist-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .info-card {
@@ -96,8 +271,8 @@ ion-content.profile-page {
 
 .info-value {
   margin-top: 10px;
-  font-size: 26px;
-  font-weight: 950;
+  font-size: 20px;
+  font-weight: 850;
   letter-spacing: -0.02em;
 }
 
@@ -135,6 +310,46 @@ ion-content.profile-page {
   border: 1px solid rgba(255, 255, 255, 0.14);
 }
 
+.admin-access-card {
+  margin-top: 10px;
+  padding: 14px 12px;
+  border-radius: 18px;
+  background: radial-gradient(120% 120% at 20% 0%, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0.04) 55%, rgba(255, 255, 255, 0.02) 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0%, rgba(0, 0, 0, 0.10) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.admin-access-title {
+  font-size: 18px;
+  font-weight: 950;
+  letter-spacing: -0.02em;
+}
+
+.admin-access-sub {
+  margin-top: 6px;
+  font-size: 12px;
+  color: rgba(227, 229, 255, 0.82);
+  font-weight: 750;
+}
+
+.downloads-row {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.downloads-copy {
+  min-width: 0;
+}
+
+.downloads-title {
+  font-size: 18px;
+  font-weight: 950;
+  letter-spacing: -0.02em;
+}
+
 .subscribe-btn {
   margin-top: 12px;
   width: 100%;
@@ -147,6 +362,39 @@ ion-content.profile-page {
   box-shadow: 0 18px 44px rgba(167, 107, 255, 0.28);
 }
 
+.subscribe-btn--compact {
+  width: auto;
+  margin-top: 0;
+  padding: 12px 14px;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.sub-details {
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+  padding: 10px 10px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.sub-detail {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(227, 229, 255, 0.88);
+  font-weight: 850;
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.sub-detail ion-icon {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.92);
+}
+
 .profile-bottom-space {
   height: 8px;
 }
@@ -156,11 +404,11 @@ ion-content.profile-page {
   left: 0;
   right: 0;
   bottom: 0;
-  height: calc(78px + var(--ion-safe-area-bottom, 0px));
+  height: calc(78px + var(--vs-safe-area-bottom, 0px));
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   align-items: center;
-  padding: 10px 12px calc(10px + var(--ion-safe-area-bottom, 0px));
+  padding: 10px 12px calc(10px + var(--vs-safe-area-bottom, 0px));
   background: rgba(12, 0, 28, 0.78);
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(18px);

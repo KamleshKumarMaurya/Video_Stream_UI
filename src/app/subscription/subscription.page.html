@@ -1,32 +1,28 @@
-<ion-content class="sub-page" fullscreen>
+<ion-content class="sub-page">
   <div class="sub-bg" aria-hidden="true"></div>
 
   <div class="sub-wrap">
-    <div class="sub-topbar vs-sticky-topbar">
-      <div class="sub-brand">
-        <img class="sub-brand-avatar" src="assets/story.png" alt="" />
-        <div class="sub-brand-meta">
-          <div class="sub-brand-title">Subscription Plans</div>
-          <div class="sub-brand-name">VideoStory</div>
-        </div>
-      </div>
-
-      <button type="button" class="sub-icon-btn" aria-label="Notifications">
-        <ion-icon name="notifications-outline"></ion-icon>
-      </button>
-    </div>
-
     <div class="sub-hero">
       <div class="sub-hero-tag">LIMITED OFFER</div>
-      <div class="sub-hero-title" *ngIf="selectedPlan?.trialAvailable; else paidTitle">
+      <div class="sub-hero-title" *ngIf="canUseTrial(selectedPlan); else paidTitle">
         {{ (selectedPlan?.trialDurationDays || trialDays) + '-Day Trial' }}
       </div>
       <ng-template #paidTitle>
         <div class="sub-hero-title">Premium Plans</div>
       </ng-template>
-      <div class="sub-hero-sub">
+      <div class="sub-hero-sub" *ngIf="canUseTrial(selectedPlan); else noTrialSub">
         Choose a plan that fits you. Start with a trial if available, then upgrade anytime.
       </div>
+      <ng-template #noTrialSub>
+        <div class="sub-hero-sub">
+          <ng-container *ngIf="trialPlanUsed === true; else genericPlanSub">
+            Trial already used. Choose a plan to subscribe.
+          </ng-container>
+          <ng-template #genericPlanSub>
+            Choose a plan that fits you. Subscribe to unlock premium content.
+          </ng-template>
+        </div>
+      </ng-template>
     </div>
 
     <div class="sub-benefits">
@@ -70,6 +66,7 @@
           *ngFor="let p of plans"
           [class.active]="selectedPlanId === p.id"
           [class.best]="isBestPlan(p)"
+          [disabled]="isProcessingPayment"
           (click)="selectPlan(p)"
         >
           <div class="best-badge" *ngIf="isBestPlan(p)">BEST VALUE</div>
@@ -82,7 +79,7 @@
             <div class="plan-months">{{ p?.name || (p?.durationDays + ' days') }}</div>
             <div class="plan-sub">
               {{ (p?.durationDays || 0) + ' days' }}
-              <span *ngIf="p?.trialAvailable"> - Trial available</span>
+              <span *ngIf="canUseTrial(p)"> - Trial available</span>
             </div>
           </div>
 
@@ -112,10 +109,20 @@
       <ion-icon name="chevron-forward-outline"></ion-icon>
     </button>
 
-    <div class="sub-legal">
+    <div class="sub-payment-note" *ngIf="razorpayError">
+      <div class="sub-payment-title">Payment error</div>
+      <div class="sub-payment-sub sub-payment-sub--error">{{ razorpayError }}</div>
+    </div>
+
+    <div class="sub-legal" *ngIf="canUseTrial(selectedPlan); else paidLegal">
       By starting your trial, you agree to our Terms of Service.
       <div class="sub-legal-sub">After 7 days, you will not be charged unless you subscribe.</div>
     </div>
+    <ng-template #paidLegal>
+      <div class="sub-legal">
+        By subscribing, you agree to our Terms of Service.
+      </div>
+    </ng-template>
   </div>
 
   <div class="sub-bottom-nav sub-bottom-nav--3">

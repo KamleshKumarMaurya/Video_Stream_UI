@@ -1,4 +1,4 @@
-<ion-content class="creator-page" fullscreen>
+<ion-content class="creator-page">
   <div class="creator-bg" aria-hidden="true">
     <div class="creator-shape s1"></div>
     <div class="creator-shape s2"></div>
@@ -6,152 +6,124 @@
   </div>
 
   <div class="creator-wrap">
-    <div class="creator-topbar vs-sticky-topbar">
-      <div class="creator-brand">
-        <img class="creator-avatar" src="assets/story.png" alt="" />
-        <div class="creator-brand-name">VideoStory</div>
-      </div>
-
-      <button type="button" class="creator-icon-btn" aria-label="Notifications">
-        <ion-icon name="notifications-outline"></ion-icon>
-      </button>
-    </div>
-
     <div class="creator-hero">
       <div class="creator-kicker">CREATOR STUDIO</div>
       <div class="creator-heading">Add New Content</div>
     </div>
 
-    <div class="form-block">
-      <div class="field">
-        <div class="field-label">Story Title</div>
-        <ion-item lines="none" class="field-item">
-          <ion-input [(ngModel)]="storyForm.title" placeholder="e.g. The Forbidden Jungle"></ion-input>
-        </ion-item>
-      </div>
+    <div class="action-grid">
+      <button id="create-story-btn" type="button" class="action-card action-card--primary" (click)="openCreateStoryModal()">
+        <div class="action-label">CREATE STORY</div>
+        <div class="action-title">Open Story Popup</div>
+        <div class="action-sub">Create a story in a popup and auto-close after save.</div>
+      </button>
 
-      <div class="field">
-        <div class="field-label">Description</div>
-        <ion-item lines="none" class="field-item field-item--textarea">
-          <ion-textarea
-            autoGrow="true"
-            rows="4"
-            [(ngModel)]="storyForm.description"
-            placeholder="Write a short story description..."
-          ></ion-textarea>
-        </ion-item>
-      </div>
-
-      <div class="field">
-        <div class="field-label">Story Thumbnail</div>
-        <div class="thumb-drop" (click)="pickFile(storyThumbInput)">
-          <input #storyThumbInput class="hidden-input" type="file" accept="image/*" (change)="onStoryThumbnailChange($event)" />
-          <ion-icon name="image-outline" aria-hidden="true"></ion-icon>
-          <div class="thumb-text">{{ storyThumbnailFile?.name || 'Choose thumbnail' }}</div>
-        </div>
-      </div>
-
-      <ion-button expand="block" class="publish-btn" (click)="submitStory()" [disabled]="isCreatingStory">
-        {{ isCreatingStory ? 'Creating...' : 'Create Story' }}
-      </ion-button>
+      <button type="button" class="action-card action-card--secondary" (click)="openUploadEpisode()">
+        <div class="action-label">UPLOAD EPISODE</div>
+        <div class="action-title">Go to Episode Upload</div>
+        <div class="action-sub">Upload episode video and track progress.</div>
+      </button>
     </div>
 
-    <div
-      class="drop-card"
-      (click)="pickFile(videoInput)"
-      (dragover)="preventDefault($event)"
-      (drop)="onVideoDrop($event)"
+    <ion-modal
+      trigger="create-story-btn"
+      [isOpen]="isCreateStoryModalOpen"
+      (didDismiss)="closeCreateStoryModal()"
+      class="create-story-modal"
     >
-      <input #videoInput class="hidden-input" type="file" accept="video/*" (change)="onVideoChange($event)" />
-      <div class="drop-icon">
-        <ion-icon name="cloud-upload-outline"></ion-icon>
+      <ng-template>
+        <ion-content class="create-story-modal__content">
+          <div class="modal-shell">
+            <div class="modal-loader" *ngIf="isCreatingStory">
+              <div class="modal-loader__card">
+                <ion-spinner name="crescent"></ion-spinner>
+                <div class="modal-loader__text">Creating story...</div>
+                <div class="modal-loader__sub">Please wait for the backend response.</div>
+              </div>
+            </div>
+
+            <div class="modal-head">
+              <div>
+                <div class="modal-kicker">CREATE STORY</div>
+                <div class="modal-title">Story Details</div>
+              </div>
+              <button type="button" class="modal-close" (click)="closeCreateStoryModal()" [disabled]="isCreatingStory">
+                <ion-icon name="close-outline" aria-hidden="true"></ion-icon>
+              </button>
+            </div>
+
+            <div class="field">
+              <div class="field-label">Story Title</div>
+              <ion-item lines="none" class="field-item">
+                <ion-input [(ngModel)]="storyForm.title" placeholder="e.g. The Forbidden Jungle"></ion-input>
+              </ion-item>
+            </div>
+
+            <div class="field">
+              <div class="field-label">Description</div>
+              <ion-item lines="none" class="field-item field-item--textarea">
+                <ion-textarea
+                  autoGrow="true"
+                  rows="4"
+                  [(ngModel)]="storyForm.description"
+                  placeholder="Write a short story description..."
+                ></ion-textarea>
+              </ion-item>
+            </div>
+
+            <div class="field">
+              <div class="field-label">Latest Story</div>
+              <ion-item lines="none" class="field-item">
+                <ion-label>Show in Newly Added</ion-label>
+                <ion-toggle slot="end" [(ngModel)]="storyForm.latest_story"></ion-toggle>
+              </ion-item>
+            </div>
+
+            <div class="field">
+              <div class="field-label">Story Thumbnail</div>
+              <div class="thumb-drop" (click)="pickFile(storyThumbInput)">
+                <input #storyThumbInput class="hidden-input" type="file" accept="image/*" (change)="onStoryThumbnailChange($event)" />
+                <ion-icon name="image-outline" aria-hidden="true"></ion-icon>
+                <div class="thumb-text">{{ storyThumbnailFile?.name || 'Choose thumbnail' }}</div>
+              </div>
+            </div>
+
+            <div class="modal-actions">
+              <ion-button expand="block" fill="outline" class="publish-btn publish-btn--secondary" (click)="closeCreateStoryModal()" [disabled]="isCreatingStory">
+                Cancel
+              </ion-button>
+              <ion-button expand="block" class="publish-btn" (click)="submitStory()" [disabled]="isCreatingStory">
+                {{ isCreatingStory ? 'Creating...' : 'Create Story' }}
+              </ion-button>
+            </div>
+          </div>
+        </ion-content>
+      </ng-template>
+    </ion-modal>
+
+    <div class="section-block" *ngIf="isAdmin">
+      <div class="section-head">
+        <div>
+          <div class="section-kicker">LIVE STATUS</div>
+          <div class="section-title">Active Uploads</div>
+        </div>
+        <button type="button" class="section-action" (click)="loadActiveUploads()" [disabled]="isLoadingActiveUploads">
+          Refresh
+        </button>
       </div>
-      <div class="drop-text">Drop your video here</div>
-      <div class="drop-sub">MP4 or MOV, max 500MB</div>
-      <div class="file-pill" *ngIf="videoFile">{{ videoFile.name }}</div>
-    </div>
 
-    <div class="form-block">
-      <div class="field">
-        <div class="field-label">Story ID</div>
-        <ion-item lines="none" class="field-item">
-          <ion-select
-            interface="popover"
-            [(ngModel)]="episodeForm.storyId"
-            placeholder="Select story"
-            [disabled]="isLoadingStories"
-          >
-            <ion-select-option *ngFor="let s of stories" [value]="s.id">
-              {{ (s.title || ('Story ' + s.id)) + '  #' + s.id }}
-            </ion-select-option>
-          </ion-select>
-        </ion-item>
-      </div>
-
-      <div class="field">
-        <div class="field-label">Episode Number</div>
-        <ion-item lines="none" class="field-item">
-          <ion-input type="number" inputmode="numeric" [(ngModel)]="episodeForm.episodeNumber" placeholder="e.g. 1"></ion-input>
-        </ion-item>
-      </div>
-
-      <div class="field">
-        <div class="field-label">Episode Title</div>
-        <ion-item lines="none" class="field-item">
-          <ion-input [(ngModel)]="episodeForm.title" placeholder="Enter episode title..."></ion-input>
-        </ion-item>
-      </div>
-
-      <div class="field">
-        <div class="field-label">Category</div>
-        <ion-item lines="none" class="field-item">
-          <ion-select interface="popover" [(ngModel)]="episodeForm.category">
-            <ion-select-option value="Lifestyle">Lifestyle</ion-select-option>
-            <ion-select-option value="Tech">Tech</ion-select-option>
-            <ion-select-option value="Creative">Creative</ion-select-option>
-            <ion-select-option value="Education">Education</ion-select-option>
-            <ion-select-option value="Entertainment">Entertainment</ion-select-option>
-            <ion-select-option value="Nature">Nature</ion-select-option>
-          </ion-select>
-        </ion-item>
-      </div>
-
-      <!-- <div class="field">
-        <div class="field-label">Tags</div>
-        <ion-item lines="none" class="field-item">
-          <ion-input [(ngModel)]="form.tags" placeholder="e.g. #vlog, #tech"></ion-input>
-        </ion-item>
-      </div>
-
-      <div class="field">
-        <div class="field-label">Description</div>
-        <ion-item lines="none" class="field-item field-item--textarea">
-          <ion-textarea
-            autoGrow="true"
-            rows="4"
-            [(ngModel)]="form.description"
-            placeholder="Tell the story behind the video..."
-          ></ion-textarea>
-        </ion-item>
-      </div> -->
-
-      <div class="field">
-        <div class="field-label">Thumbnail</div>
-        <div
-          class="thumb-drop"
-          (click)="pickFile(thumbInput)"
-          (dragover)="preventDefault($event)"
-          (drop)="onThumbDrop($event)"
-        >
-          <input #thumbInput class="hidden-input" type="file" accept="image/*" (change)="onThumbnailChange($event)" />
-          <ion-icon name="image-outline" aria-hidden="true"></ion-icon>
-          <div class="thumb-text">{{ episodeThumbnailFile?.name || 'Choose thumbnail' }}</div>
+      <div class="upload-job-list" *ngIf="activeUploads.length; else noActiveUploadsTpl">
+        <div class="upload-job-card" *ngFor="let job of activeUploads">
+          <div class="upload-job-name">{{ getActiveUploadTitle(job) }}</div>
+          <div class="upload-job-percent">{{ getActiveUploadProgress(job) }}%</div>
         </div>
       </div>
 
-      <ion-button expand="block" class="publish-btn" (click)="submitEpisode()" [disabled]="isUploadingEpisode">
-        {{ isSubmitting ? 'Publishing…' : 'Publish Story' }}
-      </ion-button>
+      <ng-template #noActiveUploadsTpl>
+        <div class="empty-active-card">
+          No active uploads right now.
+        </div>
+      </ng-template>
     </div>
 
     <div class="manage-row">
@@ -168,7 +140,7 @@
           <img class="content-cover" [src]="toCover(s)" alt="" />
         </div>
         <div class="content-mid">
-          <div class="content-cat">{{ (s?.category || episodeForm.category || 'Lifestyle') | uppercase }}</div>
+          <div class="content-cat">{{ (s?.category || 'Lifestyle') | uppercase }}</div>
           <div class="content-name">{{ s?.title || ('Story ' + s?.id) }}</div>
           <div class="content-stats">
             <span><ion-icon name="eye-outline" aria-hidden="true"></ion-icon> 12.4k</span>
@@ -251,71 +223,3 @@
   </ng-template>
 </ion-content>
 
-<!-- LEGACY ADD-STORY TEMPLATE (kept for reference during redesign)
-<ion-header>
-  <ion-toolbar class="fancy-toolbar">
-    <ion-buttons slot="start">
-      <ion-menu-button></ion-menu-button>
-    </ion-buttons>
-    <ion-title>Add Story</ion-title>
-  </ion-toolbar>
-</ion-header>
-
-<ion-content class="page-bg ion-padding">
-  <div class="hero">
-    <h1>Upload New Episode</h1>
-    <p>Attach video + thumbnail and publish to your story in one step.</p>
-  </div>
-
-  <ion-card class="upload-card">
-    <ion-card-content>
-      <div class="field-group">
-        <ion-item lines="none" class="fancy-item">
-          <ion-label position="stacked">Story ID</ion-label>
-          <ion-input type="number" [(ngModel)]="form.storyId" placeholder="e.g. 2"></ion-input>
-        </ion-item>
-
-        <ion-item lines="none" class="fancy-item">
-          <ion-label position="stacked">Episode Number</ion-label>
-          <ion-input type="number" [(ngModel)]="form.episodeNumber" placeholder="e.g. 2"></ion-input>
-        </ion-item>
-
-        <ion-item lines="none" class="fancy-item">
-          <ion-label position="stacked">Title</ion-label>
-          <ion-input [(ngModel)]="form.title" placeholder="Episode-2"></ion-input>
-        </ion-item>
-      </div>
-
-      <div class="picker-grid">
-        <div class="file-picker">
-          <div class="picker-top">
-            <span>Video File</span>
-            <ion-chip color="primary" *ngIf="videoFile">{{ videoFile.name }}</ion-chip>
-            <ion-chip color="medium" *ngIf="!videoFile">No video selected</ion-chip>
-          </div>
-          <input #videoInput class="hidden-input" type="file" accept="video/*" (change)="onVideoChange($event)">
-          <ion-button fill="outline" class="picker-btn" (click)="pickFile(videoInput)">
-            Choose Video
-          </ion-button>
-        </div>
-
-        <div class="file-picker">
-          <div class="picker-top">
-            <span>Thumbnail Image</span>
-            <ion-chip color="success" *ngIf="thumbnailFile">{{ thumbnailFile.name }}</ion-chip>
-            <ion-chip color="medium" *ngIf="!thumbnailFile">No thumbnail selected</ion-chip>
-          </div>
-          <input #thumbInput class="hidden-input" type="file" accept="image/*" (change)="onThumbnailChange($event)">
-          <ion-button fill="outline" class="picker-btn" (click)="pickFile(thumbInput)">
-            Choose Thumbnail
-          </ion-button>
-        </div>
-      </div>
-
-      <ion-button expand="block" class="submit-btn" (click)="submit()" [disabled]="isSubmitting">
-        {{ isSubmitting ? 'Uploading...' : 'Upload Episode' }}
-      </ion-button>
-    </ion-card-content>
-  </ion-card>
-</ion-content>
--->
