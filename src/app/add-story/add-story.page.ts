@@ -18,6 +18,7 @@ export class AddStoryPage implements OnInit, OnDestroy {
     title: '',
     description: '',
     latest_story: false,
+    type: 'video',
   };
   isCreateStoryModalOpen = false;
 
@@ -38,6 +39,10 @@ export class AddStoryPage implements OnInit, OnDestroy {
 
   storyThumbnailFile: File | null = null;
   isCreatingStory = false;
+  readonly mediaTypes: Array<{ label: string; value: string }> = [
+    { label: 'Video', value: 'video' },
+    { label: 'Audio', value: 'audio' },
+  ];
 
   ngOnInit(): void {
     try {
@@ -255,13 +260,14 @@ export class AddStoryPage implements OnInit, OnDestroy {
       title: this.storyForm.title,
       description: this.storyForm.description,
       latest_story: this.storyForm.latest_story,
+      type: this.storyForm.type,
       thumbnail: this.storyThumbnailFile,
     }).subscribe({
       next: async (created: any) => {
         await this.showToast('Story created.');
         const createdId = created?.id ?? created?.storyId ?? created?.data?.id;
         this.lastCreatedStoryId = createdId ?? null;
-        this.storyForm = { title: '', description: '', latest_story: false };
+        this.storyForm = { title: '', description: '', latest_story: false, type: 'video' };
         this.storyThumbnailFile = null;
         this.isCreatingStory = false;
         this.closeCreateStoryModal();

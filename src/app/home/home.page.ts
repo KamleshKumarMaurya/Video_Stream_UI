@@ -4,6 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { AdminService } from '../services/admin.service';
 import { ToastController } from '@ionic/angular';
 import { WishlistService } from '../services/wishlist.service';
+import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-home',
@@ -38,9 +39,27 @@ export class HomePage implements OnInit {
   private latestPointerStartY = 0;
   private latestSuppressClick = false;
   private latestFrameId: number | null = null;
+  private exploreLoadTimer: number | null = null;
+  private exploreRequestSeq = 0;
+  private homeRequestSeq = 0;
 
   activeBottomTab: 'home' | 'explore' | 'create' | 'library' | 'profile' = 'home';
   role: 'admin' | 'customer' = 'customer';
+  activeStoryTypeFilter: 'all' | 'audio' | 'video' = 'all';
+  exploreStoryTypeFilter: 'all' | 'audio' | 'video' = 'all';
+  exploreSearchTerm = '';
+  exploreStoriesData: any[] = [];
+  isLoadingExploreStories = false;
+
+  readonly storyTypeFilters: Array<{
+    label: string;
+    value: 'all' | 'audio' | 'video';
+    icon: string;
+  }> = [
+    { label: 'All Stories', value: 'all', icon: 'layers-outline' },
+    { label: 'Video', value: 'video', icon: 'play-circle-outline' },
+    { label: 'Audio', value: 'audio', icon: 'musical-notes-outline' },
+  ];
 
   showSubscriptionCta = false;
   subscriptionCtaLabel = 'Get Subscription';
@@ -65,6 +84,9 @@ export class HomePage implements OnInit {
           this.activeBottomTab = 'home';
         } else {
           this.activeBottomTab = tab;
+          if (tab === 'explore') {
+            this.loadExploreStories();
+          }
         }
       }
     });
@@ -76,20 +98,22 @@ export class HomePage implements OnInit {
       /* ignore */
     }
 
-    this.refreshSubscriptionState();
-
-    this.storyService.getStories().subscribe((res: any) => {
-      this.stories = this.storyService.extractStories(res);
-      this.buildLatestDeck();
-    }, (err) => {
-    });
+    void this.loadHomeData();
   }
 
   ionViewWillEnter(): void {
-    this.refreshSubscriptionState();
+    void this.refreshSubscriptionState();
+    if (this.activeBottomTab === 'explore') {
+      this.loadExploreStories();
+    }
   }
 
-  private refreshSubscriptionState(): void {
+  async onRefresh(event: any): Promise<void> {
+    await this.loadHomeData();
+    event?.target?.complete?.();
+  }
+
+  private async refreshSubscriptionState(): Promise<void> {
     if (this.isAdmin) {
       this.showSubscriptionCta = false;
       return;
@@ -105,23 +129,42 @@ export class HomePage implements OnInit {
     if (this.isCheckingSubscription) return;
     this.isCheckingSubscription = true;
 
-    this.adminService.getCustomer(userId).subscribe({
-      next: (res: any) => {
-        const active = !!res?.subscriptionActive;
-        this.showSubscriptionCta = !active;
-        this.subscriptionCtaLabel = active ? 'Subscribed' : 'Get Subscription';
-        this.isCheckingSubscription = false;
-      },
-      error: () => {
-        this.showSubscriptionCta = true;
-        this.subscriptionCtaLabel = 'Get Subscription';
-        this.isCheckingSubscription = false;
-      },
-    });
+    try {
+      const res: any = await firstValueFrom(this.adminService.getCustomer(userId));
+      const active = !!res?.subscriptionActive;
+      this.showSubscriptionCta = !active;
+      this.subscriptionCtaLabel = active ? 'Subscribed' : 'Get Subscription';
+    } catch {
+      this.showSubscriptionCta = true;
+      this.subscriptionCtaLabel = 'Get Subscription';
+    } finally {
+      this.isCheckingSubscription = false;
+    }
   }
 
   openSubscription(): void {
     this.router.navigateByUrl('/subscription');
+  }
+
+  private async loadHomeData(): Promise<void> {
+    const requestId = ++this.homeRequestSeq;
+    await this.refreshSubscriptionState();
+
+    try {
+      const res: any = await firstValueFrom(this.storyService.getStories());
+      if (requestId !== this.homeRequestSeq) return;
+      this.stories = this.storyService.extractStories(res);
+      this.buildLatestDeck();
+    } catch {
+      if (requestId !== this.homeRequestSeq) return;
+      this.stories = [];
+      this.latestStories = [];
+      this.latestDeck = [];
+    }
+
+    if (this.activeBottomTab === 'explore') {
+      this.loadExploreStories();
+    }
   }
 
   get wishlistedCount(): number {
@@ -180,19 +223,36 @@ export class HomePage implements OnInit {
   }
 
   get trendingMain(): any {
-    return this.stories?.[0] || null;
+    return this.filteredStories?.[0] || null;
   }
 
   get trendingSide(): any[] {
-    return (this.stories || []).slice(1, 3);
+    return this.filteredStories.slice(1, 3);
   }
 
   get popularCards(): any[] {
-    return (this.stories || []).slice(3, 10);
+    return this.filteredStories.slice(3, 10);
   }
 
   get exploreStories(): any[] {
-    return [...(this.stories || [])].sort((a, b) => this.getStoryCreatedAtMs(b) - this.getStoryCreatedAtMs(a));
+    return this.exploreStoriesData || [];
+  }
+
+  get exploreSubtitle(): string {
+    const count = this.exploreStories.length;
+    const search = this.exploreSearchTerm.trim();
+    const typeLabel = this.exploreStoryTypeFilter === 'all'
+      ? 'All Stories'
+      : this.getStoryTypeLabel({ type: this.exploreStoryTypeFilter });
+
+    if (!search && this.exploreStoryTypeFilter === 'all') {
+      return `Showing ${count} stories`;
+    }
+
+    const parts = [`Showing ${count} result${count === 1 ? '' : 's'}`];
+    if (this.exploreStoryTypeFilter !== 'all') parts.push(typeLabel);
+    if (search) parts.push(`"${search}"`);
+    return parts.join(' • ');
   }
 
   get latestActive(): any | null {
@@ -234,6 +294,40 @@ export class HomePage implements OnInit {
   onNotifications(){
   }
 
+  setStoryTypeFilter(filter: 'all' | 'audio' | 'video'): void {
+    this.activeStoryTypeFilter = filter;
+    this.buildLatestDeck();
+  }
+
+  onExploreFiltersChange(): void {
+    if (this.exploreLoadTimer != null) {
+      clearTimeout(this.exploreLoadTimer);
+      this.exploreLoadTimer = null;
+    }
+
+    this.exploreLoadTimer = window.setTimeout(() => this.loadExploreStories(), 250);
+  }
+
+  clearExploreSearch(): void {
+    this.exploreSearchTerm = '';
+    this.onExploreFiltersChange();
+  }
+
+  get filteredStories(): any[] {
+    return (this.stories || [])
+      .filter((story) => this.storyMatchesFilter(story))
+      .sort((a, b) => this.getStoryCreatedAtMs(b) - this.getStoryCreatedAtMs(a));
+  }
+
+  get visibleStoryCount(): number {
+    return this.filteredStories.length;
+  }
+
+  getStoryTypeCount(type: 'all' | 'audio' | 'video'): number {
+    if (type === 'all') return (this.stories || []).length;
+    return (this.stories || []).filter((story) => this.getStoryType(story) === type).length;
+  }
+
   setBottomTab(tab: 'home' | 'explore' | 'create' | 'library' | 'profile'){
     this.activeBottomTab = tab;
     if (tab === 'home' || tab === 'explore') {
@@ -259,10 +353,18 @@ export class HomePage implements OnInit {
       this.router.navigateByUrl('/users');
       return;
     }
+    if (tab === 'explore') {
+      this.loadExploreStories();
+      return;
+    }
   }
 
   openStory(story:any){
     if (!story?.id) return;
+    if (this.getStoryType(story) === 'audio') {
+      this.router.navigateByUrl(`/audio/${story.id}`);
+      return;
+    }
     this.router.navigateByUrl(`/story/${story.id}`);
   }
 
@@ -441,6 +543,7 @@ export class HomePage implements OnInit {
 
   private buildLatestDeck(): void {
     const candidates = (this.stories || [])
+      .filter((s) => this.storyMatchesFilter(s))
       .filter((s) => this.isLatestStory(s))
       .sort((a, b) => this.getStoryCreatedAtMs(b) - this.getStoryCreatedAtMs(a));
 
@@ -457,6 +560,94 @@ export class HomePage implements OnInit {
       return v === 'true' || v === '1' || v === 'yes';
     }
     return false;
+  }
+
+  storyMatchesFilter(story: any): boolean {
+    if (this.activeStoryTypeFilter === 'all') return true;
+    return this.getStoryType(story) === this.activeStoryTypeFilter;
+  }
+
+  private storyMatchesExploreFilters(story: any): boolean {
+    if (this.exploreStoryTypeFilter !== 'all' && this.getStoryType(story) !== this.exploreStoryTypeFilter) {
+      return false;
+    }
+
+    return this.storyMatchesSearch(story);
+  }
+
+  private storyMatchesSearch(story: any): boolean {
+    const search = this.exploreSearchTerm.trim().toLowerCase();
+    if (!search) return true;
+
+    const haystack = [
+      story?.title,
+      story?.description,
+      story?.category,
+      story?.type,
+      story?.storyType,
+      story?.mediaType,
+      story?.contentType,
+      this.getStoryTypeLabel(story),
+    ]
+      .filter(Boolean)
+      .map((value) => String(value).toLowerCase())
+      .join(' ');
+
+    return haystack.includes(search);
+  }
+
+  getStoryType(story: any): 'audio' | 'video' {
+    const raw = String(story?.type ?? story?.storyType ?? story?.mediaType ?? story?.contentType ?? '').trim().toLowerCase();
+    if (raw.includes('audio')) return 'audio';
+    if (raw.includes('video')) return 'video';
+    return 'video';
+  }
+
+  getStoryTypeLabel(story: any): string {
+    return this.getStoryType(story) === 'audio' ? 'Audio' : 'Video';
+  }
+
+  getStoryTypeActionLabel(story: any): string {
+    return this.getStoryType(story) === 'audio' ? 'Listen' : 'Watch';
+  }
+
+  getStoryTypeIcon(story: any): string {
+    return this.getStoryType(story) === 'audio' ? 'musical-notes-outline' : 'play-circle-outline';
+  }
+
+  getStoryTypeBadgeClass(story: any): string {
+    return this.getStoryType(story) === 'audio' ? 'story-type-badge--audio' : 'story-type-badge--video';
+  }
+
+  private loadExploreStories(): void {
+    if (this.exploreLoadTimer != null) {
+      clearTimeout(this.exploreLoadTimer);
+      this.exploreLoadTimer = null;
+    }
+
+    const requestId = ++this.exploreRequestSeq;
+    const type = this.exploreStoryTypeFilter.trim();
+    const search = this.exploreSearchTerm.trim();
+    const query: { type?: string; search?: string } = {};
+    if (type && type !== 'all') query.type = type;
+    if (search) query.search = search;
+
+    this.isLoadingExploreStories = true;
+
+    this.storyService.getStories(query).subscribe({
+      next: (res: any) => {
+        if (requestId !== this.exploreRequestSeq) return;
+        this.exploreStoriesData = this.storyService.extractStories(res).sort(
+          (a, b) => this.getStoryCreatedAtMs(b) - this.getStoryCreatedAtMs(a),
+        );
+        this.isLoadingExploreStories = false;
+      },
+      error: () => {
+        if (requestId !== this.exploreRequestSeq) return;
+        this.exploreStoriesData = [];
+        this.isLoadingExploreStories = false;
+      },
+    });
   }
 
   private getStoryCreatedAtMs(story: any): number {

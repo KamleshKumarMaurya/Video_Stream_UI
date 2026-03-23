@@ -1,9 +1,24 @@
 <ion-content class="home-page">
+  <ion-refresher slot="fixed" (ionRefresh)="onRefresh($event)">
+    <ion-refresher-content
+      pullingIcon="chevron-down-circle-outline"
+      refreshingSpinner="crescent"
+    ></ion-refresher-content>
+  </ion-refresher>
+
   <div class="home-bg" aria-hidden="true"></div>
 
   <div class="home-wrap">
     <ng-container [ngSwitch]="activeBottomTab">
       <ng-container *ngSwitchCase="'home'">
+        <div class="type-empty" *ngIf="!visibleStoryCount">
+          <div class="type-empty__icon">
+            <ion-icon [name]="activeStoryTypeFilter === 'audio' ? 'musical-notes-outline' : 'play-circle-outline'"></ion-icon>
+          </div>
+          <div class="type-empty__title">{{ activeStoryTypeFilter === 'all' ? 'No stories yet' : 'No ' + getStoryTypeLabel({ type: activeStoryTypeFilter }) + ' stories yet' }}</div>
+          <div class="type-empty__sub">Try another type or add a new story from the creator screen.</div>
+        </div>
+
         <div class="latest-block" *ngIf="latestActive as latest">
           <div class="latest-stack" role="button" tabindex="0" (click)="onLatestStackClick($event)">
             <div
@@ -41,7 +56,7 @@
 
               <div class="latest-meta">
                 <div class="latest-name">{{ latest?.title || 'New story' }}</div>
-                <div class="latest-sub">{{ latest?.category || 'Story' }}</div>
+                <div class="latest-sub">{{ latest?.category || 'Story' }} • {{ getStoryTypeLabel(latest) }}</div>
               </div>
 
               <div class="latest-actions" (click)="$event.stopPropagation()">
@@ -71,6 +86,14 @@
           <button type="button" class="trend-main" (click)="openStory(trendingMain)" [disabled]="!trendingMain">
             <img class="card-img" [src]="toThumb(trendingMain)" alt="" (error)="onImgError($event)" />
             <div class="card-dim"></div>
+            <div
+              *ngIf="trendingMain"
+              class="story-type-badge"
+              [ngClass]="getStoryTypeBadgeClass(trendingMain)"
+            >
+              <ion-icon [name]="getStoryTypeIcon(trendingMain)" aria-hidden="true"></ion-icon>
+              <span>{{ getStoryTypeLabel(trendingMain) }}</span>
+            </div>
             <button
               *ngIf="!isAdmin"
               type="button"
@@ -101,6 +124,10 @@
             >
               <img class="mini-img" [src]="toThumb(s)" alt="" (error)="onImgError($event)" />
               <div class="mini-dim"></div>
+              <div class="story-type-badge story-type-badge" [ngClass]="getStoryTypeBadgeClass(s)">
+                <ion-icon [name]="getStoryTypeIcon(s)" aria-hidden="true"></ion-icon>
+                <span>{{ getStoryTypeLabel(s) }}</span>
+              </div>
               <button
                 *ngIf="!isAdmin"
                 type="button"
@@ -141,6 +168,10 @@
           >
             <div class="pick-media">
               <img class="pick-img" [src]="toThumb(s)" alt="" (error)="onImgError($event)" />
+              <div class="story-type-badge story-type-badge--pick" [ngClass]="getStoryTypeBadgeClass(s)">
+                <ion-icon [name]="getStoryTypeIcon(s)" aria-hidden="true"></ion-icon>
+                <span>{{ getStoryTypeLabel(s) }}</span>
+              </div>
               <button
                 *ngIf="!isAdmin"
                 type="button"
@@ -157,32 +188,112 @@
             <div class="pick-title">{{ s?.title || 'Story' }}</div>
           </button>
         </div>
-
-        
       </ng-container>
 
       <ng-container *ngSwitchCase="'explore'">
         <div class="explore-head">
           <div class="explore-title">Explore</div>
-          <div class="explore-sub">All stories</div>
+          <div class="explore-sub">{{ exploreSubtitle }}</div>
         </div>
 
-        <div class="explore-grid">
-          <button type="button" class="explore-card" *ngFor="let s of exploreStories; let i = index" (click)="openStory(s)">
-            <div class="explore-media">
-              <img class="explore-img" [src]="toThumb(s)" alt="" (error)="onImgError($event)" />
-            </div>
-            <div class="explore-meta">
-              <div class="explore-cat">{{ (s?.category || 'Story') }}</div>
-              <div class="explore-name">{{ s?.title || 'Untitled' }}</div>
-            </div>
-          </button>
+        <div class="explore-tools">
+          <div class="explore-controls">
+          <div class="explore-search">
+            <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
+            <input
+              class="explore-search__input"
+              type="text"
+              [(ngModel)]="exploreSearchTerm"
+              (ngModelChange)="onExploreFiltersChange()"
+              placeholder="Search stories, categories, or type..."
+            />
+            <button
+              *ngIf="exploreSearchTerm"
+              type="button"
+              class="explore-search__clear"
+              (click)="clearExploreSearch()"
+              aria-label="Clear search"
+            >
+              <ion-icon name="close-circle-outline" aria-hidden="true"></ion-icon>
+            </button>
+          </div>
+
+            <ion-item lines="none" class="explore-select">
+              <ion-icon name="filter-outline" aria-hidden="true"></ion-icon>
+              <ion-select
+                interface="popover"
+                [(ngModel)]="exploreStoryTypeFilter"
+                (ngModelChange)="onExploreFiltersChange()"
+                aria-label="Type filter"
+              >
+                <ion-select-option *ngFor="let filter of storyTypeFilters" [value]="filter.value">
+                  {{ filter.label }}
+                </ion-select-option>
+              </ion-select>
+            </ion-item>
+          </div>
         </div>
+
+        <div class="type-empty type-empty--explore" *ngIf="isLoadingExploreStories">
+          <div class="type-empty__icon">
+            <ion-spinner name="crescent"></ion-spinner>
+          </div>
+          <div class="type-empty__title">Loading stories</div>
+          <div class="type-empty__sub">Fetching results from the backend...</div>
+        </div>
+
+        <ng-container *ngIf="!isLoadingExploreStories">
+          <div class="explore-grid" *ngIf="exploreStories.length; else exploreEmptyTpl">
+            <button type="button" class="explore-card" *ngFor="let s of exploreStories; let i = index" (click)="openStory(s)">
+              <div class="explore-media">
+                <img class="explore-img" [src]="toThumb(s)" alt="" (error)="onImgError($event)" />
+                <div class="story-type-badge story-type-badge--explore" [ngClass]="getStoryTypeBadgeClass(s)">
+                  <ion-icon [name]="getStoryTypeIcon(s)" aria-hidden="true"></ion-icon>
+                  <span>{{ getStoryTypeLabel(s) }}</span>
+                </div>
+              </div>
+              <div class="explore-meta">
+                <div class="explore-cat">{{ (s?.category || 'Story') }}</div>
+                <div class="explore-name">{{ s?.title || 'Untitled' }}</div>
+              </div>
+            </button>
+          </div>
+
+          <ng-template #exploreEmptyTpl>
+            <div class="type-empty type-empty--explore">
+              <div class="type-empty__icon">
+                <ion-icon name="search-outline"></ion-icon>
+              </div>
+              <div class="type-empty__title">No stories found</div>
+              <div class="type-empty__sub">Try a different search term or switch the Audio / Video filter.</div>
+            </div>
+          </ng-template>
+        </ng-container>
       </ng-container>
     </ng-container>
 
     <div class="sub-promo-spacer" *ngIf="activeBottomTab === 'home' && showSubscriptionCta && !isAdmin" aria-hidden="true"></div>
     <div class="bottom-spacer" aria-hidden="true"></div>
+  </div>
+
+  <div
+    class="story-filter-shell story-filter-shell--floating"
+    *ngIf="activeBottomTab === 'home'"
+    [class.story-filter-shell--floating--lifted]="showSubscriptionCta && !isAdmin"
+  >
+    <div class="story-filter-pill" role="tablist" aria-label="Story type filters">
+      <button
+        *ngFor="let filter of storyTypeFilters"
+        type="button"
+        class="story-filter-pill__item"
+        role="tab"
+        [attr.aria-selected]="activeStoryTypeFilter === filter.value"
+        [class.active]="activeStoryTypeFilter === filter.value"
+        (click)="setStoryTypeFilter(filter.value)"
+      >
+        <span>{{ filter.label }}</span>
+      </button>
+    </div>
   </div>
 
   <div class="sub-promo sub-promo--floating" *ngIf="activeBottomTab === 'home' && showSubscriptionCta && !isAdmin">
@@ -246,4 +357,3 @@
     </div>
   </ng-template>
 </ion-content>
-

@@ -72,6 +72,17 @@
             </div>
 
             <div class="field">
+              <div class="field-label">Story Type</div>
+              <ion-item lines="none" class="field-item">
+                <ion-select interface="popover" [(ngModel)]="storyForm.type">
+                  <ion-select-option *ngFor="let option of mediaTypes" [value]="option.value">
+                    {{ option.label }}
+                  </ion-select-option>
+                </ion-select>
+              </ion-item>
+            </div>
+
+            <div class="field">
               <div class="field-label">Latest Story</div>
               <ion-item lines="none" class="field-item">
                 <ion-label>Show in Newly Added</ion-label>

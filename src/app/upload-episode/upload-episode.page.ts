@@ -25,11 +25,16 @@ export class UploadEpisodePage implements OnInit {
     episodeNumber: '',
     title: '',
     category: 'Lifestyle',
+    type: 'video',
   };
 
   videoFile: File | null = null;
   episodeThumbnailFile: File | null = null;
   private uploadStartToastShown = false;
+  readonly mediaTypes: Array<{ label: string; value: string }> = [
+    { label: 'Video', value: 'video' },
+    { label: 'Audio', value: 'audio' },
+  ];
 
   role: 'admin' | 'customer' = 'customer';
 
@@ -53,7 +58,10 @@ export class UploadEpisodePage implements OnInit {
 
     this.route.queryParamMap.subscribe((params) => {
       const storyId = params.get('storyId');
-      if (storyId) this.uploadForm.storyId = storyId;
+      if (storyId) {
+        this.uploadForm.storyId = storyId;
+        this.syncMediaTypeWithSelection();
+      }
     });
 
     this.loadStories();
@@ -69,6 +77,7 @@ export class UploadEpisodePage implements OnInit {
           (a, b) => this.getStoryCreatedAtMs(b) - this.getStoryCreatedAtMs(a),
         );
         this.isLoadingStories = false;
+        this.syncMediaTypeWithSelection();
       },
       error: async (err) => {
         this.isLoadingStories = false;
@@ -89,6 +98,7 @@ export class UploadEpisodePage implements OnInit {
   onVideoChange(event: Event): void {
     const input = event.target as HTMLInputElement;
     this.videoFile = input.files?.[0] ?? null;
+    this.syncMediaTypeWithSelection();
   }
 
   onThumbnailChange(event: Event): void {
@@ -99,7 +109,10 @@ export class UploadEpisodePage implements OnInit {
   onVideoDrop(ev: DragEvent): void {
     this.preventDefault(ev);
     const file = ev.dataTransfer?.files?.[0];
-    if (file) this.videoFile = file;
+    if (file) {
+      this.videoFile = file;
+      this.syncMediaTypeWithSelection();
+    }
   }
 
   onThumbDrop(ev: DragEvent): void {
@@ -133,6 +146,7 @@ export class UploadEpisodePage implements OnInit {
       title: this.uploadForm.title,
       file: this.videoFile,
       thumbnail: this.episodeThumbnailFile,
+      type: this.uploadForm.type,
     }).subscribe({
       next: async (event) => {
         if (event.type === HttpEventType.Sent) {
@@ -148,6 +162,7 @@ export class UploadEpisodePage implements OnInit {
           this.uploadForm.episodeNumber = '';
           this.uploadForm.title = '';
           this.uploadForm.category = 'Lifestyle';
+          this.uploadForm.type = 'video';
           this.videoFile = null;
           this.episodeThumbnailFile = null;
           await this.showToast('Your upload started.');
@@ -175,6 +190,35 @@ export class UploadEpisodePage implements OnInit {
 
     const parsed = Date.parse(text);
     return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  private resolveMediaType(file: File | null): string {
+    const mime = String(file?.type ?? '').toLowerCase();
+    if (mime.startsWith('audio/')) return 'audio';
+    if (mime.startsWith('video/')) return 'video';
+
+    const name = String(file?.name ?? '').toLowerCase();
+    if (/\.(mp3|wav|aac|m4a|ogg|flac)$/.test(name)) return 'audio';
+    return 'video';
+  }
+
+  syncMediaTypeWithSelection(): void {
+    const selectedStory = this.stories.find((story) => String(story?.id) === String(this.uploadForm.storyId));
+    const storyType = this.resolveStoryMediaType(selectedStory);
+    if (storyType) {
+      this.uploadForm.type = storyType;
+      return;
+    }
+
+    this.uploadForm.type = this.resolveMediaType(this.videoFile);
+  }
+
+  private resolveStoryMediaType(story: any): string {
+    const raw = String(story?.type ?? story?.storyType ?? story?.mediaType ?? story?.contentType ?? '').trim().toLowerCase();
+    if (!raw) return '';
+    if (raw.includes('audio')) return 'audio';
+    if (raw.includes('video')) return 'video';
+    return '';
   }
 
   private async showToast(message: string): Promise<void> {

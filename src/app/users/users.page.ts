@@ -68,12 +68,22 @@ export class UsersPage implements OnInit {
   }
 
   refreshDashboard(): void {
-    this.loadDashboardStats();
-    this.loadCustomers(true);
+    this.dashboardStats = {
+      totalUsers: 0,
+      activeUsers: 0,
+      inactiveUsers: 0,
+      newUsersLast7Days: 0,
+    };
+    this.customers = [];
+    this.page = 0;
+    this.isLastPage = true;
+
+    this.loadDashboardStats(true);
+    this.loadCustomers(true, true);
   }
 
-  loadDashboardStats(): void {
-    if (this.isLoadingDashboard) return;
+  loadDashboardStats(force = false): void {
+    if (this.isLoadingDashboard && !force) return;
     this.isLoadingDashboard = true;
 
     this.adminService.getCustomerDashboardUsers().subscribe({
@@ -100,8 +110,8 @@ export class UsersPage implements OnInit {
     });
   }
 
-  async loadCustomers(reset = false): Promise<void> {
-    if (this.isLoading) return;
+  async loadCustomers(reset = false, force = false): Promise<void> {
+    if (this.isLoading && !force) return;
     this.isLoading = true;
 
     const nextPage = reset ? 0 : this.page;

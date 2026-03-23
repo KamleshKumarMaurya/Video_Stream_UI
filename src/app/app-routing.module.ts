@@ -30,6 +30,11 @@ const routes: Routes = [
     canMatch: [authGuard],
   },
   {
+    path: 'audio/:id',
+    loadChildren: () => import('./audio-story/audio-story.module').then(m => m.AudioStoryPageModule),
+    canMatch: [authGuard],
+  },
+  {
     path: 'story/:id',
     loadChildren: () => import('./story/story.module').then(m => m.StoryPageModule),
     canMatch: [authGuard],

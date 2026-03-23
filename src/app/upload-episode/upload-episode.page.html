@@ -27,6 +27,7 @@
           <ion-select
             interface="popover"
             [(ngModel)]="uploadForm.storyId"
+            (ngModelChange)="syncMediaTypeWithSelection()"
             placeholder="Select story"
             [disabled]="isLoadingStories"
           >
@@ -68,12 +69,23 @@
       </div>
 
       <div class="field">
-        <div class="field-label">Video File</div>
+        <div class="field-label">Media Type</div>
+        <ion-item lines="none" class="field-item">
+          <ion-select interface="popover" [(ngModel)]="uploadForm.type" [disabled]="true">
+            <ion-select-option *ngFor="let option of mediaTypes" [value]="option.value">
+              {{ option.label }}
+            </ion-select-option>
+          </ion-select>
+        </ion-item>
+      </div>
+
+      <div class="field">
+        <div class="field-label">Media File</div>
         <div class="drop-card" (click)="pickFile(videoInput)" (dragover)="preventDefault($event)" (drop)="onVideoDrop($event)">
-          <input #videoInput class="hidden-input" type="file" accept="video/*" (change)="onVideoChange($event)" />
+          <input #videoInput class="hidden-input" type="file" accept="audio/*,video/*" (change)="onVideoChange($event)" />
           <ion-icon name="cloud-upload-outline" aria-hidden="true"></ion-icon>
-          <div class="drop-text">{{ videoFile?.name || 'Drop or choose video file' }}</div>
-          <div class="drop-sub">MP4 or MOV</div>
+          <div class="drop-text">{{ videoFile?.name || 'Drop or choose media file' }}</div>
+          <div class="drop-sub">MP4, MOV, MP3, WAV</div>
         </div>
       </div>
 

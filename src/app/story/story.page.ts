@@ -99,6 +99,10 @@ export class StoryPage implements OnInit, OnDestroy {
 
     this.storyService.getStory(id).subscribe((res: any) => {
       this.story = res || null;
+      if (this.isAudioStory(this.story)) {
+        this.router.navigateByUrl(`/audio/${id}`, { replaceUrl: true });
+        return;
+      }
       this.syncWishlistState();
     });
 
@@ -373,6 +377,11 @@ export class StoryPage implements OnInit, OnDestroy {
     if (byKey >= 0) return byKey;
 
     return list.indexOf(this.currentEpisode);
+  }
+
+  private isAudioStory(story: any): boolean {
+    const raw = String(story?.type ?? story?.storyType ?? story?.mediaType ?? story?.contentType ?? '').trim().toLowerCase();
+    return raw.includes('audio');
   }
 
   async playNextEpisode(): Promise<boolean> {

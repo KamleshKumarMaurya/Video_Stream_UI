@@ -43,10 +43,14 @@ export class StoryService {
     return Array.isArray(content) ? content : [];
   }
 
-  getStories(opts?: { page?: number; size?: number }): Observable<any> {
+  getStories(opts?: { page?: number; size?: number; type?: string; search?: string }): Observable<any> {
     let params = new HttpParams();
     if (opts?.page != null) params = params.set('page', String(opts.page));
     if (opts?.size != null) params = params.set('size', String(opts.size));
+    const type = opts?.type?.trim();
+    const search = opts?.search?.trim();
+    if (type && type !== 'all') params = params.set('type', type);
+    if (search) params = params.set('search', search);
     return this.http.get(`${this.base}/stories`, { headers: this.buildHeaders(), params });
   }
 
@@ -58,13 +62,14 @@ export class StoryService {
     return this.http.get(`${this.base}/stories/${storyId}/episodes`, { headers: this.buildHeaders() });
   }
 
-  createStory(payload: { title: string; description: string; thumbnail: File; latest_story?: boolean }): Observable<any> {
+  createStory(payload: { title: string; description: string; thumbnail: File; latest_story?: boolean; type: string }): Observable<any> {
     const formData = new FormData();
     formData.append('title', payload.title);
     formData.append('description', payload.description);
     if (payload.latest_story != null) {
       formData.append('latest_story', String(payload.latest_story));
     }
+    formData.append('type', payload.type);
     formData.append('thumbnail', payload.thumbnail);
 
     return this.http.post(`${this.base}/stories`, formData, { headers: this.buildHeaders() });
@@ -76,11 +81,13 @@ export class StoryService {
     title: string;
     file: File;
     thumbnail: File;
+    type: string;
   }): Observable<any> {
     const formData = new FormData();
     formData.append('storyId', String(payload.storyId));
     formData.append('episodeNumber', String(payload.episodeNumber));
     formData.append('title', payload.title);
+    formData.append('type', payload.type);
     formData.append('file', payload.file);
     formData.append('thumbnail', payload.thumbnail);
 
@@ -93,11 +100,13 @@ export class StoryService {
     title: string;
     file: File;
     thumbnail: File;
+    type: string;
   }): Observable<HttpEvent<any>> {
     const formData = new FormData();
     formData.append('storyId', String(payload.storyId));
     formData.append('episodeNumber', String(payload.episodeNumber));
     formData.append('title', payload.title);
+    formData.append('type', payload.type);
     formData.append('file', payload.file);
     formData.append('thumbnail', payload.thumbnail);
 
